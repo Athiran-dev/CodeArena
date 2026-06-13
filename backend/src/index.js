@@ -1,70 +1,95 @@
+require('dotenv').config({ path: __dirname + '/.env', override: true });
 const express = require('express');
 const main = require('./config/db');
-require('dotenv').config({ path: __dirname + '/.env' });
 const cookieParser = require('cookie-parser');
-const authRouter = require('./routes/userAuth');
-const redisClient = require('./config/redis.js');
-const problemRouter = require('./routes/problemCreator')
-const submitRouter = require('./routes/submit')
-const videoRouter = require('./routes/videoCreator')
+const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 
-console.log('🔍 Starting server initialization...');
-console.log('PORT:', process.env.PORT);
-console.log('DB_CONNECT_STRING:', process.env.DB_CONNECT_STRING ? 'SET' : 'NOT SET');
+// Import routes
+const authRouter = require('./routes/userAuth');
+const problemRouter = require('./routes/problemCreator');
+const submitRouter = require('./routes/submit');
+const videoRouter = require('./routes/videoCreator');
+const aiRouter = require('./routes/aiChatting');
+const contestRouter = require('./routes/contest');
 
 const app = express();
+const server = http.createServer(app);
 
-const cors = require('cors');
-const aiRouter = require('./routes/aiChatting');
+// Socket.io setup
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST']
+  }
+});
 
+// Socket logic
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+
+  socket.on('join-contest', (contestId) => {
+    socket.join(contestId);
+    console.log(`User ${socket.id} joined contest room: ${contestId}`);
+  });
+
+  socket.on('send-message', (data) => {
+    // data = { contestId, message, user }
+    io.to(data.contestId).emit('receive-message', {
+      message: data.message,
+      user: data.user,
+      timestamp: new Date()
+    });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// CORS Configuration - Permissive for development
 app.use(cors({
   origin: 'http://localhost:5173',
-  credentials: true
-}))
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  optionsSuccessStatus: 200
+}));
 
+// Middlewares
 app.use(express.json());
 app.use(cookieParser());
+
+// Routes
 app.use('/user', authRouter);
 app.use('/problem', problemRouter);
-app.use('/submission', submitRouter)
-app.use('/ai', aiRouter)
-app.use("/video", videoRouter);
+app.use('/submission', submitRouter);
+app.use('/ai', aiRouter);
+app.use('/video', videoRouter);
+app.use('/contest', contestRouter);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Server is running' });
+});
 
+// Initialize database connections
 const initializeConnection = async () => {
   try {
     console.log('🔄 Attempting MongoDB connection...');
     await main(); // MongoDB
     console.log("✅ MongoDB Connected");
-
-    // Redis is already connected in config
-    console.log("✅ Redis Connected");
-
-    console.log(`🚀 Starting server on port ${process.env.PORT}...`);
-    app.listen(process.env.PORT, () => {
-      console.log("🚀 Server started on port " + process.env.PORT);
-    });
   } catch (err) {
-    console.log("❌ Error:", err.message);
-    console.error(err);
-    process.exit(1);
+    console.log("❌ Database connection error:", err.message);
   }
 };
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
-});
+initializeConnection();
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
-  process.exit(1);
-});
-
-console.log('🔄 Calling initializeConnection...');
-initializeConnection().catch(err => {
-  console.error('❌ Fatal error in initializeConnection:', err);
-  process.exit(1);
+// Start Server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 Server started on port ${PORT}`);
+  console.log(`📡 Local health check: http://localhost:${PORT}/health`);
 });
