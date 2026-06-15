@@ -157,4 +157,121 @@ const deleteProfile=async(req,res)=>{
    res.status(500).send("Internal Server Error")
   }
 }
-module.exports = { register, login, logout,adminRegister,deleteProfile };
+
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const user = await User.findById(userId).select('-password');
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Clean up orphan submissions (where problem is deleted)
+    // We do this via an aggregation to populate and filter
+    const matchStage = { $match: { userId: user._id } };
+    
+    const pipeline = [
+      matchStage,
+      {
+        $lookup: {
+          from: 'problems', // The collection name in MongoDB (model 'problem' -> 'problems')
+          localField: 'problemId',
+          foreignField: '_id',
+          as: 'problemDetails'
+        }
+      },
+      // Filter out submissions where the problem was deleted
+      { $match: { 'problemDetails.0': { $exists: true } } },
+      { $sort: { createdAt: -1 } }
+    ];
+
+    const totalSubmissionsAggr = await Submission.aggregate([
+      ...pipeline,
+      { $count: 'total' }
+    ]);
+    const total = totalSubmissionsAggr.length > 0 ? totalSubmissionsAggr[0].total : 0;
+
+    const submissionsAggr = await Submission.aggregate([
+      ...pipeline,
+      { $skip: (page - 1) * limit },
+      { $limit: limit }
+    ]);
+    
+    // Map it to look like populated mongoose doc
+    const submissions = submissionsAggr.map(sub => ({
+      ...sub,
+      problemId: sub.problemDetails[0]
+    }));
+
+    // Calculate 30-day activity graph data
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const activityAggr = await Submission.aggregate([
+      { 
+        $match: { 
+          userId: user._id, 
+          status: 'accepted',
+          createdAt: { $gte: thirtyDaysAgo }
+        } 
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Generate a full 30-day map to include days with 0 submissions
+    const activityData = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateString = d.toISOString().split('T')[0];
+      const found = activityAggr.find(a => a._id === dateString);
+      activityData.push({
+        date: dateString,
+        solved: found ? found.count : 0
+      });
+    }
+
+    res.status(200).json({ 
+      user, 
+      submissions, 
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      activityData
+    });
+  } catch (err) {
+    console.error('Error fetching profile:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+const getLeaderboard = async (req, res) => {
+  try {
+    // Global leaderboard: Top 100 users by number of problems solved
+    const topUsers = await User.aggregate([
+      {
+        $project: {
+          firstName: 1,
+          lastName: 1,
+          photo: 1,
+          solvedCount: { $size: { $ifNull: ['$problemSolved', []] } }
+        }
+      },
+      { $sort: { solvedCount: -1 } },
+      { $limit: 100 }
+    ]);
+
+    res.status(200).json(topUsers);
+  } catch (err) {
+    console.error('Error fetching leaderboard:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
+module.exports = { register, login, logout, adminRegister, deleteProfile, getProfile, getLeaderboard };

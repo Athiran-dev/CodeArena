@@ -3,7 +3,7 @@ const userMiddleware=require('../middleware/userMiddleware')
 const adminMiddleware=require('../middleware/adminMiddleware')
 
 const authRouter=express.Router();
-const {login,register,logout,adminRegister,deleteProfile}=require('../controllers/userAthent')
+const {login,register,logout,adminRegister,deleteProfile,getProfile,getLeaderboard}=require('../controllers/userAthent')
 
 authRouter.post('/register',register);
 authRouter.post('/login',login);
@@ -23,6 +23,8 @@ res.status(200).json({
 })
 
 })
-// authRouter.get('getProfile',getProfile);
+
+authRouter.get('/profile', userMiddleware, getProfile);
+authRouter.get('/leaderboard', getLeaderboard);
 
 module.exports=authRouter
