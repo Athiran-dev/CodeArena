@@ -334,7 +334,7 @@
 // };
 
 // module.exports = { generateUploadSignature, saveVideoMetadata, deleteVideo };
- cloudinary = require('cloudinary').v2;
+const cloudinary = require('cloudinary').v2;
 const Problem = require("../models/problems");
 const SolutionVideo = require("../models/solutionVideo");
 
@@ -344,6 +344,62 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+const generateUploadSignature = async (req, res) => {
+  try {
+    const { problemId } = req.params;
+    
+    console.log('Generating upload signature for problem:', problemId);
+    
+    const userId = req.user._id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    // Verify problem exists
+    const problem = await Problem.findById(problemId);
+    if (!problem) {
+      console.log('Problem not found:', problemId);
+      return res.status(404).json({ error: 'Problem not found' });
+    }
+
+    // Generate unique public_id for the video
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const publicId = `leetcode-solutions/${problemId}/${userId}_${timestamp}`;
+    
+    // Upload parameters
+    const uploadParams = {
+      timestamp: timestamp,
+      public_id: publicId,
+      resource_type: 'video'
+    };
+
+    // Generate signature
+    const signature = cloudinary.utils.api_sign_request(
+      uploadParams,
+      process.env.CLOUDINARY_API_SECRET
+    );
+
+    console.log('Upload signature generated successfully for:', publicId);
+
+    res.json({
+      signature,
+      timestamp,
+      public_id: publicId,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      upload_url: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload`,
+    });
+
+  } catch (error) {
+    console.error('Error generating upload signature:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate upload credentials',
+      details: error.message 
+    });
+  }
+};
 
 const saveVideoMetadata = async (req, res) => {
   try {
@@ -468,6 +524,7 @@ const checkConfig = async (req, res) => {
 };
 
 module.exports = { 
+  generateUploadSignature,
   saveVideoMetadata, 
   deleteVideo,
   checkConfig

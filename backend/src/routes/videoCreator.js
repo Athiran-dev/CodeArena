@@ -26,6 +26,7 @@ const express = require('express');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const videoRouter = express.Router();
 const { 
+  generateUploadSignature,
   saveVideoMetadata, 
   deleteVideo,
   checkConfig
@@ -33,6 +34,7 @@ const {
 
 // Video routes
 videoRouter.get("/config", adminMiddleware, checkConfig);
+videoRouter.get("/create/:problemId", adminMiddleware, generateUploadSignature);
 videoRouter.post("/save", adminMiddleware, saveVideoMetadata);
 videoRouter.delete("/delete/:problemId", adminMiddleware, deleteVideo);
 
