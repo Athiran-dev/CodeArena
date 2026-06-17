@@ -189,7 +189,7 @@ const getProblemById = async (req, res) => {
   try {
     if (!id) return res.status(400).send("ID is Missing");
     
-    const getProblem = await Problem.findById(id).select('_id title description difficulty tags visibleTestCases referenceSolution');
+    const getProblem = await Problem.findById(id).select('_id title description difficulty tags visibleTestCases startCode referenceSolution');
 
     
     
@@ -220,16 +220,47 @@ const getProblemById = async (req, res) => {
 
 const getAllProblem = async (req, res) => {
   try {
-    
-    const allProblems = await Problem.find({}).select(
-     '_id title description difficulty tags visibleTestCases hiddenTestCases startCode referenceSolution ' 
-    );
-     
-    if (!allProblems || allProblems.length === 0) {
-      return res.status(404).send("No problems found");
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 6;
+    const skip = (page - 1) * limit;
+
+    const { search, difficulty, tag } = req.query;
+
+    const query = {};
+
+    if (difficulty && difficulty !== 'all') {
+      query.difficulty = difficulty;
     }
     
-    res.status(200).send(allProblems);
+    if (tag && tag !== 'all') {
+      // Tags might be case sensitive depending on DB, but usually stored exact
+      query.tags = tag;
+    }
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const allProblems = await Problem.find(query)
+      .select('_id title description difficulty tags visibleTestCases hiddenTestCases startCode referenceSolution')
+      .skip(skip)
+      .limit(limit);
+     
+    const total = await Problem.countDocuments(query);
+
+    if (!allProblems || allProblems.length === 0) {
+      return res.status(200).send({ problems: [], totalPages: 0, currentPage: page });
+    }
+    
+    res.status(200).send({
+      problems: allProblems,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      totalProblems: total
+    });
   } catch (err) {
     console.error('Error in getAllProblem:', err);
     res.status(500).send("Error: " + err.message);

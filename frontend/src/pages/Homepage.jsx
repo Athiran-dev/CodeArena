@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { NavLink } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 import axiosClient from '../utils/axiosClient';
 import { logoutUser, updateUser } from '../authSlice';
-import { motion } from 'framer-motion';
-import { Search, ChevronLeft, ChevronRight, TrendingUp, Clock, Trophy, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, ChevronLeft, ChevronRight, TrendingUp, Clock, Trophy, Star, Code2, Menu, Filter } from 'lucide-react';
+import Logo from '../images/Code.png';
 
-function Homepage() {
+export default function Homepage() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  
   const [problems, setProblems] = useState([]);
   const [solvedProblems, setSolvedProblems] = useState([]);
   const [filters, setFilters] = useState({
@@ -29,8 +31,17 @@ function Homepage() {
   });
 
   // Pagination
-  const problemsPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const problemsPerPage = 6;
+  
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Check user role when component mounts or user changes
   useEffect(() => {
@@ -58,29 +69,51 @@ function Homepage() {
     }
   };
 
-  useEffect(() => {
-    const fetchProblems = async () => {
-      setLoading(true);
-      try {
-        const { data } = await axiosClient.get('/problem/getAllProblem');
-        setProblems(data);
-      } catch (error) {
-        console.error('Error fetching problems:', error);
-      } finally {
-        setLoading(false);
+  const fetchProblems = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Pass pagination and filter params to the backend
+      const queryParams = new URLSearchParams({
+        page: currentPage,
+        limit: problemsPerPage,
+        ...(filters.search && { search: filters.search }),
+        ...(filters.difficulty !== 'all' && { difficulty: filters.difficulty }),
+        ...(filters.tag !== 'all' && { tag: filters.tag })
+      }).toString();
+      
+      const { data } = await axiosClient.get(`/problem/getAllProblem?${queryParams}`);
+      
+      // Filter by solved status locally if required, since "status" is user-specific
+      let displayProblems = data.problems || [];
+      if (filters.status !== 'all' && solvedProblems.length > 0) {
+        displayProblems = displayProblems.filter(problem => {
+          const isSolved = solvedProblems.some(sp => sp._id === problem._id);
+          return filters.status === 'solved' ? isSolved : !isSolved;
+        });
       }
-    };
+      
+      setProblems(displayProblems);
+      setTotalPages(data.totalPages || 1);
+      
+    } catch (error) {
+      console.error('Error fetching problems:', error);
+      setProblems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, filters.search, filters.difficulty, filters.tag, filters.status, solvedProblems]);
 
+  useEffect(() => {
     const fetchSolvedProblems = async () => {
       try {
         const { data } = await axiosClient.get('/problem/problemSolvedByUser');
         setSolvedProblems(data);
-        
+
         // Calculate stats
         const easySolved = data.filter(p => p.difficulty === 'easy').length;
         const mediumSolved = data.filter(p => p.difficulty === 'medium').length;
         const hardSolved = data.filter(p => p.difficulty === 'hard').length;
-        
+
         setStats({
           totalSolved: data.length,
           easySolved,
@@ -92,9 +125,18 @@ function Homepage() {
       }
     };
 
-    fetchProblems();
     if (user) fetchSolvedProblems();
   }, [user]);
+
+  // Fetch problems whenever filters or page changes
+  useEffect(() => {
+    fetchProblems();
+  }, [fetchProblems]);
+
+  // Reset page to 1 when filters change (except when simply switching pages)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.difficulty, filters.tag, filters.status]);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -108,37 +150,18 @@ function Homepage() {
     return solvedProblems.some(sp => sp._id === problemId);
   };
 
-  const filteredProblems = problems.filter(problem => {
-    const difficultyMatch = filters.difficulty === 'all' || 
-                           problem.difficulty?.toLowerCase() === filters.difficulty;
-    const tagMatch = filters.tag === 'all' || 
-                    problem.tags?.toLowerCase() === filters.tag.toLowerCase();
-    const searchMatch = problem.title?.toLowerCase().includes(filters.search.toLowerCase()) ||
-                       problem.tags?.toLowerCase().includes(filters.search.toLowerCase());
-    const statusMatch = filters.status === 'all' ? true :
-                       filters.status === 'solved' ? isProblemSolved(problem._id) :
-                       !isProblemSolved(problem._id);
-    
-    return difficultyMatch && tagMatch && searchMatch && statusMatch;
-  });
-
-  // Pagination calculations
-  const indexOfLastProblem = currentPage * problemsPerPage;
-  const indexOfFirstProblem = indexOfLastProblem - problemsPerPage;
-  const currentProblems = filteredProblems.slice(indexOfFirstProblem, indexOfLastProblem);
-  const totalPages = Math.ceil(filteredProblems.length / problemsPerPage);
-
   const nextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(prev => prev + 1);
     }
   };
 
   const prevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage(prev => prev - 1);
     }
   };
+
 
   const goToPage = (page) => {
     setCurrentPage(page);
@@ -147,13 +170,13 @@ function Homepage() {
   const getPageNumbers = () => {
     const pages = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       const start = Math.max(1, currentPage - 2);
       const end = Math.min(totalPages, start + maxVisiblePages - 1);
-      
+
       for (let i = start; i <= end; i++) pages.push(i);
     }
     return pages;
@@ -165,10 +188,10 @@ function Homepage() {
 
   const getDifficultyBadgeColor = (difficulty) => {
     switch (difficulty?.toLowerCase()) {
-      case 'easy': return 'bg-green-500/20 text-green-400';
-      case 'medium': return 'bg-yellow-500/20 text-yellow-400';
-      case 'hard': return 'bg-red-500/20 text-red-400';
-      default: return 'bg-gray-500/20 text-gray-400';
+      case 'easy': return 'from-green-500/20 to-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'medium': return 'from-yellow-500/20 to-orange-500/20 text-yellow-400 border-yellow-500/30';
+      case 'hard': return 'from-red-500/20 to-rose-500/20 text-red-400 border-red-500/30';
+      default: return 'from-gray-500/20 to-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
 
@@ -194,19 +217,16 @@ function Homepage() {
 
   if (!userChecked || loading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 border-4 border-white border-t-transparent rounded-full mx-auto"
-          />
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+        <div className="text-center relative">
+          <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full"></div>
+          <Code2 className="w-16 h-16 text-cyan-400 animate-bounce mx-auto relative z-10" />
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="mt-4 text-xl"
+            className="mt-6 text-xl font-bold tracking-widest text-slate-300 relative z-10 uppercase"
           >
-            Loading Challenges...
+            Loading Arena...
           </motion.p>
         </div>
       </div>
@@ -214,297 +234,185 @@ function Homepage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans overflow-x-hidden">
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-          body { font-family: 'Inter', sans-serif; }
-          .bg-radial-gradient {
-            background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.1), transparent 50%),
-                        radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.1), transparent 50%);
-          }
-          @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); opacity: 0.3; }
-            50% { transform: scale(1.1); opacity: 0.6; }
-          }
-          .animate-pulse-slow {
-            animation: pulse-slow 8s infinite ease-in-out;
-          }
-          .line-clamp-2 {
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-          }
-          .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-          }
-          .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-          }
-        `}
-      </style>
-      
-      {/* Animated Background */}
-      <div className="fixed inset-0 z-0 bg-radial-gradient" />
+    <div className="min-h-screen bg-slate-950 text-white font-sans overflow-x-hidden relative">
+
+      {/* Mesh Background */}
+      <div className="fixed inset-0 z-0 bg-mesh-dark animate-mesh opacity-30 mix-blend-screen pointer-events-none"></div>
+
+      {/* Floating Ambient Orbs */}
       <motion.div
-        className="fixed top-20 left-1/4 w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        className="fixed top-1/4 left-1/4 w-[600px] h-[600px] rounded-full bg-cyan-600/10 blur-[150px] pointer-events-none"
+        animate={{ scale: [1, 1.2, 1], x: [0, 50, 0] }}
+        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="fixed bottom-32 right-1/4 w-80 h-80 rounded-full bg-fuchsia-600/10 blur-3xl"
-        animate={{
-          scale: [1.2, 1, 1.2],
-          opacity: [0.6, 0.3, 0.6],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
+        className="fixed bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full bg-fuchsia-600/10 blur-[150px] pointer-events-none"
+        animate={{ scale: [1.2, 1, 1.2], x: [0, -50, 0] }}
+        transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Navigation Bar */}
-      <nav className="fixed top-0 left-0 w-full z-50 bg-gray-950/80 backdrop-blur-2xl border-b border-gray-800">
-        <div className="container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
-          <NavLink to="/" className="text-2xl font-extrabold text-white flex items-center">
-            <img 
-              src="/src/images/Code.png" 
-              alt="CodeArena Logo" 
-              className="w-20 h-16 mr-3 brightness-110 contrast-110" 
-            />
-            <span>CodeArena</span>
+      {/* IDE Toolbar Nav */}
+      <nav className="fixed top-0 left-0 w-full z-50 bg-slate-950/40 backdrop-blur-xl shadow-glass flex justify-between items-center py-4">
+        <div className="flex items-center px-4 gap-8">
+          <NavLink to="/" className="flex items-center gap-2 group">
+            <img src={Logo} alt="CodeArena Logo" className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+            <span className="font-mono font-bold text-slate-300 group-hover:text-white transition-colors tracking-widest text-sm">&gt;_ CODEARENA</span>
           </NavLink>
-          
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-3 px-4 py-2 bg-gray-800/50 rounded-xl border border-gray-700 hover:bg-gray-700 transition-all duration-300"
-              >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                  {user?.firstName?.charAt(0)?.toUpperCase() || 'U'}
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-medium text-white">{user?.firstName}</div>
-                  <div className="text-xs text-gray-400">{isAdmin ? 'Administrator' : 'Coder'}</div>
-                </div>
-                {isAdmin && (
-                  <span className="px-2 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs rounded-full font-bold">
-                    PRO
-                  </span>
-                )}
-              </motion.button>
-              
+
+          <div className="hidden md:flex items-center gap-6 font-mono text-sm">
+            <NavLink to="/contests" className={({isActive}) => `transition-colors ${isActive ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}>
+              ./contests
+            </NavLink>
+            <NavLink to="/leaderboard" className={({isActive}) => `transition-colors ${isActive ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}>
+              ./leaderboard
+            </NavLink>
+            <NavLink to="/profile" className={({isActive}) => `transition-colors ${isActive ? 'text-cyan-400' : 'text-slate-400 hover:text-slate-200'}`}>
+              ./profile
+            </NavLink>
+          </div>
+        </div>
+
+        <div className="flex items-center px-4 space-x-2">
+          {/* User Command Center */}
+          <div className="relative">
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800 transition-all rounded font-mono text-xs text-slate-300"
+            >
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              {user?.firstName?.toLowerCase() || 'guest'}@arena
+            </button>
+
+            <AnimatePresence>
               {isDropdownOpen && (
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="absolute top-14 right-0 z-50 w-64 p-2 shadow-2xl bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-700"
+                  exit={{ opacity: 0, y: 5 }}
+                  className="absolute top-10 right-0 z-50 w-56 p-1 shadow-2xl bg-slate-900 border border-slate-700 rounded-lg font-mono text-xs"
                 >
-                  <div className="p-3 border-b border-gray-700">
-                    <div className="text-sm text-gray-400">Signed in as</div>
-                    <div className="font-medium text-white">{user?.emailId}</div>
+                  <div className="p-3 border-b border-slate-800">
+                    <div className="text-slate-500">status: <span className="text-emerald-500">online</span></div>
+                    <div className="text-white truncate mt-1">~/{user?.firstName?.toLowerCase()}</div>
                   </div>
-                  <ul className="space-y-1 p-1">
+                  <div className="p-1 space-y-1">
                     {isAdmin && (
-                      <li>
-                        <NavLink 
-                          to="/admin" 
-                          className="flex items-center gap-3 px-3 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors"
-                          onClick={() => setIsDropdownOpen(false)}
-                        >
-                          <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          </div>
-                          <span>Admin Dashboard</span>
-                        </NavLink>
-                      </li>
-                    )}
-                    <li>
-                      <button 
-                        onClick={handleLogout}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-red-300 hover:bg-red-500/10 hover:text-red-400 rounded-lg transition-colors"
+                      <NavLink
+                        to="/admin"
+                        className="flex items-center gap-3 px-3 py-2 text-slate-400 hover:bg-slate-800 hover:text-white rounded transition-colors"
+                        onClick={() => setIsDropdownOpen(false)}
                       >
-                        <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
-                          <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                        </div>
-                        <span>Sign Out</span>
-                      </button>
-                    </li>
-                  </ul>
+                        <span className="text-fuchsia-500">./admin</span>
+                      </NavLink>
+                    )}
+                    <button
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-slate-400 hover:bg-red-500/20 hover:text-red-400 rounded transition-colors"
+                    >
+                      <span className="text-red-500">sudo exit</span>
+                    </button>
+                  </div>
                 </motion.div>
               )}
-            </div>
+            </AnimatePresence>
           </div>
         </div>
       </nav>
 
-      {/* Main Content with Better Spacing */}
-      <div className="container mx-auto px-4 sm:px-6 pt-24 pb-12 min-h-screen">
-        {/* Header Section with Fixed Height */}
+      {/* Main Content */}
+      <main className="pt-36 pb-20 px-6 max-w-7xl mx-auto relative z-10">
+
+        {/* Header Section */}
         <motion.div
           initial="hidden"
           animate="visible"
           variants={animationVariants}
-          className="text-center mb-12 pt-8"
+          className="text-center mb-16"
         >
-          <h1 className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent mb-6 leading-tight">
-            Coding Challenges
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-bold mb-6">
+            <Trophy size={16} /> Choose your battle
+          </div>
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400 mb-6 tracking-tight">
+            Algorithm Arena
           </h1>
-          <p className="text-gray-400 text-xl max-w-2xl mx-auto leading-relaxed">
-            Level up your coding skills with curated challenges and track your progress in real-time
+          <p className="text-slate-400 text-xl max-w-2xl mx-auto font-medium">
+            Solve complex problems, rank up on the global leaderboard, and prove your engineering prowess.
           </p>
         </motion.div>
 
-        {/* User Stats Section */}
+        {/* Claymorphic User Stats */}
         {user && (
           <motion.div
             initial="hidden"
             animate="visible"
             variants={animationVariants}
-            className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
           >
-            <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl p-6 border border-blue-500/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Trophy className="w-6 h-6 text-blue-400" />
+            {[
+              { label: "Total Solved", value: stats.totalSolved, icon: <Trophy className="text-blue-400" />, from: "from-blue-600/20", to: "to-cyan-600/20" },
+              { label: "Easy", value: stats.easySolved, icon: <TrendingUp className="text-emerald-400" />, from: "from-emerald-600/20", to: "to-green-600/20" },
+              { label: "Medium", value: stats.mediumSolved, icon: <Clock className="text-yellow-400" />, from: "from-yellow-600/20", to: "to-orange-600/20" },
+              { label: "Hard", value: stats.hardSolved, icon: <Star className="text-red-400" />, from: "from-red-600/20", to: "to-rose-600/20" }
+            ].map((stat, i) => (
+              <div key={i} className={`relative bg-slate-900/60 backdrop-blur-xl rounded-[2rem] p-6 border border-white/5 shadow-clay flex items-center gap-4 overflow-hidden group`}>
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.from} ${stat.to} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                <div className="relative z-10 p-4 bg-slate-950 rounded-2xl shadow-inner_clay">
+                  {stat.icon}
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{stats.totalSolved}</div>
-                  <div className="text-sm text-gray-400">Solved</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl p-6 border border-green-500/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <TrendingUp className="w-6 h-6 text-green-400" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{stats.easySolved}</div>
-                  <div className="text-sm text-gray-400">Easy</div>
+                <div className="relative z-10">
+                  <div className="text-3xl font-black text-white tracking-tight">{stat.value}</div>
+                  <div className="text-sm font-bold text-slate-500 uppercase">{stat.label}</div>
                 </div>
               </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 rounded-2xl p-6 border border-yellow-500/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/20 rounded-lg">
-                  <Clock className="w-6 h-6 text-yellow-400" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{stats.mediumSolved}</div>
-                  <div className="text-sm text-gray-400">Medium</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-red-500/10 to-pink-500/10 rounded-2xl p-6 border border-red-500/20">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-500/20 rounded-lg">
-                  <Star className="w-6 h-6 text-red-400" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">{stats.hardSolved}</div>
-                  <div className="text-sm text-gray-400">Hard</div>
-                </div>
-              </div>
-            </div>
+            ))}
           </motion.div>
         )}
 
-        {/* Search and Filters */}
-        <motion.div 
+        {/* Floating Glass Filter Bar */}
+        <motion.div
           initial="hidden"
           animate="visible"
           variants={animationVariants}
-          className="bg-gray-800/50 rounded-2xl p-6 mb-8 shadow-xl backdrop-blur-md border border-gray-700"
+          className="sticky top-24 z-40 bg-slate-900/40 backdrop-blur-2xl rounded-3xl p-4 mb-12 shadow-mirror border border-white/10"
         >
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
-            {/* Search Bar */}
+          <div className="flex flex-col lg:flex-row gap-4 items-center">
+            {/* Search */}
             <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 h-5 w-5" />
               <input
                 type="text"
-                placeholder="Search problems by title or tags..."
-                className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                placeholder="Search challenges..."
+                className="w-full pl-12 pr-4 py-4 bg-slate-800/50 backdrop-blur-md border border-slate-700 shadow-inner text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium placeholder-slate-500"
                 value={filters.search}
-                onChange={(e) => setFilters({...filters, search: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
               />
             </div>
 
-            {/* Filters */}
-            <div className="flex flex-wrap gap-3">
-              <select 
-                className="px-4 py-3 bg-gray-900 border border-gray-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                value={filters.status}
-                onChange={(e) => setFilters({...filters, status: e.target.value})}
-              >
-                <option value="all">All Problems</option>
-                <option value="solved">Solved</option>
-                <option value="unsolved">Unsolved</option>
-              </select>
-
-              <select 
-                className="px-4 py-3 bg-gray-900 border border-gray-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                value={filters.difficulty}
-                onChange={(e) => setFilters({...filters, difficulty: e.target.value})}
-              >
-                <option value="all">All Difficulty</option>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-
-              <select 
-                className="px-4 py-3 bg-gray-900 border border-gray-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                value={filters.tag}
-                onChange={(e) => setFilters({...filters, tag: e.target.value})}
-              >
-                <option value="all">All Tags</option>
-                <option value="array">Array</option>
-                <option value="linkedList">Linked List</option>
-                <option value="graph">Graph</option>
-                <option value="dp">DP</option>
-                <option value="string">String</option>
-                <option value="tree">Tree</option>
-                <option value="stack">Stack</option>
-                <option value="queue">Queue</option>
-              </select>
+            {/* Dropdowns */}
+            <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+              {[
+                { key: 'status', options: [{ val: 'all', label: 'All Status' }, { val: 'solved', label: 'Solved' }, { val: 'unsolved', label: 'Unsolved' }] },
+                { key: 'difficulty', options: [{ val: 'all', label: 'All Diff' }, { val: 'easy', label: 'Easy' }, { val: 'medium', label: 'Medium' }, { val: 'hard', label: 'Hard' }] },
+                { key: 'tag', options: [{ val: 'all', label: 'All Tags' }, { val: 'array', label: 'Array' }, { val: 'linkedList', label: 'Linked List' }, { val: 'graph', label: 'Graph' }, { val: 'dp', label: 'DP' }] }
+              ].map((filterGrp) => (
+                <div key={filterGrp.key} className="relative flex-1 sm:flex-none">
+                  <select
+                    className="w-full appearance-none px-6 py-4 bg-slate-800/50 backdrop-blur-md border border-slate-700 shadow-inner text-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium font-sans cursor-pointer hover:bg-slate-700/50"
+                    value={filters[filterGrp.key]}
+                    onChange={(e) => setFilters({ ...filters, [filterGrp.key]: e.target.value })}
+                  >
+                    {filterGrp.options.map(opt => <option key={opt.val} value={opt.val} className="bg-slate-800 text-white">{opt.label}</option>)}
+                  </select>
+                  <Filter className="absolute right-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                </div>
+              ))}
             </div>
-          </div>
-
-          {/* Results Info */}
-          <div className="flex flex-col sm:flex-row justify-between items-center mt-4 text-sm text-gray-500">
-            <span>
-              Showing {currentProblems.length} of {filteredProblems.length} problems
-              {filters.search && ` for "${filters.search}"`}
-            </span>
-            <span className="text-blue-400 font-medium">Page {currentPage} of {totalPages}</span>
           </div>
         </motion.div>
 
-        {/* Problems Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          {currentProblems.map((problem, index) => {
+        {/* 3D Problem Cards Grid */}
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-16 perspective-1000">
+          {problems.map((problem, index) => {
             const solved = isProblemSolved(problem._id);
             return (
               <motion.div
@@ -513,44 +421,65 @@ function Homepage() {
                 animate="visible"
                 variants={cardVariants}
                 custom={index}
-                whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                className="group bg-gray-800/50 rounded-2xl p-6 shadow-xl backdrop-blur-md border border-gray-700 hover:border-blue-500/50 transition-all duration-300"
+                whileHover={{ rotateX: 5, rotateY: -5, scale: 1.02, transition: { duration: 0.2 } }}
+                className="group relative bg-slate-900/60 backdrop-blur-xl rounded-[2rem] p-8 border border-white/5 shadow-clay flex flex-col h-full transform-style-3d"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2 leading-tight flex-1">
-                    <NavLink to={`/problem/${problem._id}`}>
-                      {problem.title}
-                    </NavLink>
-                  </h3>
-                  {solved && (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 rounded-full ml-2 flex-shrink-0">
-                      <svg className="w-3 h-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-green-400 text-xs font-medium">Solved</span>
+                {/* Glow behind card */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2rem]"></div>
+
+                <div className="flex-1 relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={`px-4 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r ${getDifficultyBadgeColor(problem.difficulty)} border`}>
+                      {problem.difficulty}
                     </div>
-                  )}
-                </div>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getDifficultyBadgeColor(problem.difficulty)}`}>
-                    {problem.difficulty}
-                  </span>
-                  <span className="px-3 py-1 rounded-full text-xs font-medium bg-cyan-500/20 text-cyan-400">
-                    {problem.tags}
-                  </span>
+                    {solved && (
+                      <div className="bg-emerald-500/20 text-emerald-400 p-2 rounded-xl shadow-inner_clay">
+                        <Trophy size={16} />
+                      </div>
+                    )}
+                  </div>
+
+                  <h3 className="text-2xl font-black text-white mb-4 line-clamp-2 leading-tight group-hover:text-cyan-400 transition-colors">
+                    {problem.title}
+                  </h3>
+
+                  <div className="inline-flex px-3 py-1 bg-slate-950 rounded-xl text-xs font-bold text-slate-400 shadow-clay-inner border border-white/5 mb-8">
+                    {problem.tags || 'Algorithm'}
+                  </div>
                 </div>
 
-                <NavLink 
+                <NavLink
                   to={`/problem/${problem._id}`}
-                  className="block w-full text-center px-6 py-3 font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300"
+                  className="relative z-10 w-full mt-auto text-center py-4 font-black rounded-2xl bg-slate-950 text-white border border-white/10 shadow-glass hover:bg-gradient-to-r hover:from-cyan-500 hover:to-blue-600 hover:border-transparent transition-all duration-300"
                 >
-                  {solved ? 'Solve Again' : 'Solve Challenge'}
+                  {solved ? 'Optimize Code' : 'Solve Challenge'}
                 </NavLink>
               </motion.div>
             );
           })}
         </div>
+
+        {/* Empty State */}
+        {problems.length === 0 && !loading && (
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={animationVariants}
+            className="text-center py-32 bg-slate-900/40 backdrop-blur-xl rounded-[3rem] border border-white/5 shadow-clay"
+          >
+            <div className="w-24 h-24 bg-slate-950 rounded-3xl mx-auto flex items-center justify-center shadow-inner_clay mb-6">
+              <Search size={40} className="text-slate-600" />
+            </div>
+            <h3 className="text-3xl font-black text-white mb-4">No challenges found</h3>
+            <p className="text-slate-400 text-lg mb-8 max-w-md mx-auto">We couldn't find any challenges matching your precise criteria.</p>
+            <button
+              onClick={() => setFilters({ difficulty: 'all', tag: 'all', status: 'all', search: '' })}
+              className="px-8 py-4 font-black rounded-2xl bg-white text-slate-950 shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_50px_rgba(255,255,255,0.4)] transition-all"
+            >
+              Clear All Filters
+            </button>
+          </motion.div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (
@@ -558,32 +487,30 @@ function Homepage() {
             initial="hidden"
             animate="visible"
             variants={animationVariants}
-            className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-12"
+            className="flex flex-col sm:flex-row justify-between items-center gap-6 mt-8 p-6 bg-slate-900/40 backdrop-blur-xl rounded-3xl border border-white/5 shadow-clay"
           >
-            <div className="text-gray-400 text-sm">
-              {filteredProblems.length} problems total
+            <div className="text-slate-400 font-medium">
+              Showing <span className="text-white font-bold">{filteredProblems.length}</span> results
             </div>
-            
+
             <div className="flex items-center gap-2">
               <button
                 onClick={prevPage}
                 disabled={currentPage === 1}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-950 border border-white/10 text-slate-400 hover:text-white hover:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-glass"
               >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
+                <ChevronLeft size={20} />
               </button>
 
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 {getPageNumbers().map((page) => (
                   <button
                     key={page}
                     onClick={() => goToPage(page)}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                      currentPage === page 
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
-                        : 'bg-gray-800/50 text-gray-300 border border-gray-700 hover:bg-gray-700'
-                    }`}
+                    className={`w-12 h-12 flex items-center justify-center rounded-2xl font-black transition-all shadow-glass ${currentPage === page
+                        ? 'bg-gradient-to-tr from-cyan-500 to-blue-600 text-white border-transparent'
+                        : 'bg-slate-950 border border-white/10 text-slate-400 hover:text-white'
+                      }`}
                   >
                     {page}
                   </button>
@@ -593,52 +520,14 @@ function Homepage() {
               <button
                 onClick={nextPage}
                 disabled={currentPage === totalPages}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800/50 border border-gray-700 text-gray-300 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-950 border border-white/10 text-slate-400 hover:text-white hover:border-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-glass"
               >
-                Next
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight size={20} />
               </button>
             </div>
           </motion.div>
         )}
-
-        {/* Empty State */}
-        {filteredProblems.length === 0 && !loading && (
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={animationVariants}
-            className="text-center py-16"
-          >
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-bold text-white mb-2">No challenges found</h3>
-            <p className="text-gray-400 mb-6">Try adjusting your search criteria or filters</p>
-            <button 
-              onClick={() => setFilters({ difficulty: 'all', tag: 'all', status: 'all', search: '' })}
-              className="px-8 py-3 font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300"
-            >
-              Reset Filters
-            </button>
-          </motion.div>
-        )}
-
-        {/* Motivational Footer */}
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={animationVariants}
-          className="text-center mt-16 pt-8 border-t border-gray-800"
-        >
-          <p className="text-gray-400 text-lg">
-            "The expert in anything was once a beginner." — Helen Hayes
-          </p>
-          <p className="text-gray-500 text-sm mt-2">
-            Keep solving challenges to become a better developer!
-          </p>
-        </motion.div>
-      </div>
+      </main>
     </div>
   );
 }
-
-export default Homepage;

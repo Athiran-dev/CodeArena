@@ -160,6 +160,35 @@ var solution = function(nums, target) {
     editorRef.current = editor;
   };
 
+  const handleEditorWillMount = (monaco) => {
+    monaco.editor.defineTheme('codearena-dark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [
+        { background: '020617' }, 
+        { token: 'keyword', foreground: '06b6d4' }, 
+        { token: 'comment', foreground: '64748b', fontStyle: 'italic' }, 
+        { token: 'string', foreground: '10b981' }, 
+        { token: 'number', foreground: 'd946ef' }, 
+        { token: 'type', foreground: '3b82f6' }, 
+      ],
+      colors: {
+        'editor.background': '#020617', 
+        'editor.foreground': '#f8fafc', 
+        'editor.lineHighlightBackground': '#0f172a', 
+        'editorLineNumber.foreground': '#334155', 
+        'editorLineNumber.activeForeground': '#06b6d4', 
+        'editor.selectionBackground': '#0ea5e940', 
+        'editor.inactiveSelectionBackground': '#0ea5e920',
+        'editorCursor.foreground': '#06b6d4', 
+        'editorIndentGuide.background': '#1e293b', 
+        'editorIndentGuide.activeBackground': '#334155', 
+        'editorWidget.background': '#0f172a', 
+        'editorWidget.border': '#1e293b', 
+      }
+    });
+  };
+
   const handleLanguageChange = (language) => {
     setSelectedLanguage(language);
     setForceLanguageUpdate(prev => prev + 1);
@@ -424,8 +453,8 @@ var solution = function(nums, target) {
           </div>
         ) : (
           filteredSolutions.map((solution, index) => (
-            <div key={index} className="border border-base-300 rounded-lg">
-              <div className="bg-base-200 px-4 py-2 rounded-t-lg flex justify-between items-center">
+            <div key={index} className="border border-slate-700 rounded-lg">
+              <div className="bg-slate-800 px-4 py-2 rounded-t-lg flex justify-between items-center">
                 <h3 className="font-semibold">{getLanguageDisplayName(solution.language)} Solution</h3>
                 <span className="text-xs badge badge-success">Official Solution</span>
               </div>
@@ -434,7 +463,8 @@ var solution = function(nums, target) {
                   height="400px"
                   language={getLanguageForMonaco(solution.language)}
                   value={solution.completeCode}
-                  theme="vs-dark"
+                  theme="codearena-dark"
+                  beforeMount={handleEditorWillMount}
                   options={{
                     readOnly: true,
                     minimap: { enabled: false },
@@ -454,7 +484,7 @@ var solution = function(nums, target) {
                   }}
                 />
               </div>
-              <div className="p-4 bg-base-100 border-t border-base-300">
+              <div className="p-4 bg-slate-900 border-t border-slate-700">
                 <div className="mt-3">
                   <button 
                     className="btn btn-sm btn-outline"
@@ -554,7 +584,7 @@ var solution = function(nums, target) {
     const status = getTestCaseStatus(testCase);
     
     return (
-      <div key={index} className="bg-base-100 p-3 rounded text-xs mb-3 border">
+      <div key={index} className="bg-slate-900 p-3 rounded text-xs mb-3 border">
         <div className="font-mono space-y-1">
           <div><strong>Test Case {index + 1}:</strong></div>
           
@@ -629,59 +659,54 @@ var solution = function(nums, target) {
   }
 
   return (
-    <div className="h-screen flex bg-base-100">
+    <div className="h-screen flex bg-slate-950 font-sans relative overflow-hidden text-slate-300">
+      <div className="absolute inset-0 z-0 bg-mesh-dark animate-mesh opacity-20 pointer-events-none mix-blend-screen"></div>
+      
       {/* Left Panel */}
-      <div className="w-1/2 flex flex-col border-r border-base-300">
+      <div className="w-1/2 flex flex-col border border-white/10 bg-slate-900/60 backdrop-blur-xl relative z-10 m-2 rounded-2xl overflow-hidden shadow-clay">
         {/* Header with Back Button */}
-        <div className="flex items-center justify-between p-4 bg-base-200 border-b border-base-300">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-4 bg-slate-950/50 backdrop-blur-md border-b border-white/10 shadow-glass z-20">
+          <div className="flex items-center gap-4">
             <Link 
               to="/" 
-              className="btn btn-ghost btn-sm gap-2"
-              title="Back to Home"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-800 border border-white/10 text-slate-400 hover:text-white hover:border-cyan-500 transition-all shadow-clay-inner group"
+              title="Back to Arena"
             >
-              <ArrowLeft size={18} />
-              <Home size={18} />
+              <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
             </Link>
-            <h1 className="text-lg font-bold truncate max-w-xs">{problem.title}</h1>
+            <h1 className="text-xl font-black text-white tracking-tight truncate max-w-xs">{problem.title}</h1>
           </div>
-          <div className={`badge badge-outline ${getDifficultyColor(problem.difficulty)}`}>
-            {problem.difficulty?.charAt(0).toUpperCase() + problem.difficulty?.slice(1)}
+          <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-r ${
+            problem.difficulty === 'easy' ? 'from-green-500/20 to-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 
+            problem.difficulty === 'medium' ? 'from-yellow-500/20 to-orange-500/20 text-yellow-400 border border-yellow-500/30' : 
+            'from-red-500/20 to-rose-500/20 text-red-400 border border-red-500/30'
+          } shadow-glass`}>
+            {problem.difficulty}
           </div>
         </div>
 
         {/* Left Tabs */}
-        <div className="tabs tabs-bordered bg-base-200 px-4">
-          <button 
-            className={`tab ${activeLeftTab === 'description' ? 'tab-active' : ''}`}
-            onClick={() => setActiveLeftTab('description')}
-          >
-            Description
-          </button>
-          <button 
-            className={`tab ${activeLeftTab === 'editorial' ? 'tab-active' : ''}`}
-            onClick={() => setActiveLeftTab('editorial')}
-          >
-            Editorial
-          </button>
-          <button 
-            className={`tab ${activeLeftTab === 'solutions' ? 'tab-active' : ''}`}
-            onClick={() => setActiveLeftTab('solutions')}
-          >
-            Solutions
-          </button>
-          <button 
-            className={`tab ${activeLeftTab === 'chat' ? 'tab-active' : ''}`}
-            onClick={() => setActiveLeftTab('chat')}
-          >
-            AI Assistant
-          </button>
-          <button 
-            className={`tab ${activeLeftTab === 'submissions' ? 'tab-active' : ''}`}
-            onClick={() => setActiveLeftTab('submissions')}
-          >
-            Submissions
-          </button>
+        <div className="flex px-4 pt-4 pb-0 bg-slate-950/30 border-b border-white/5 space-x-2 overflow-x-auto scrollbar-hide z-20">
+          {[
+            { id: 'description', label: 'Description' },
+            { id: 'editorial', label: 'Editorial' },
+            { id: 'solutions', label: 'Solutions' },
+            { id: 'chat', label: 'AI Assistant' },
+            { id: 'submissions', label: 'Submissions' }
+          ].map(tab => (
+            <button 
+              key={tab.id}
+              className={`px-4 py-3 text-sm font-bold transition-all relative whitespace-nowrap ${
+                activeLeftTab === tab.id ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+              }`}
+              onClick={() => setActiveLeftTab(tab.id)}
+            >
+              {tab.label}
+              {activeLeftTab === tab.id && (
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-cyan-400 shadow-[0_-2px_10px_rgba(6,182,212,0.8)] rounded-t-full"></div>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Left Content */}
@@ -701,7 +726,7 @@ var solution = function(nums, target) {
                       <h3 className="text-lg font-semibold mb-4">Examples:</h3>
                       <div className="space-y-4">
                         {problem.visibleTestCases.map((example, index) => (
-                          <div key={index} className="bg-base-200 p-4 rounded-lg">
+                          <div key={index} className="bg-slate-800 p-4 rounded-lg">
                             <h4 className="font-semibold mb-2">Example {index + 1}:</h4>
                             <div className="space-y-2 text-sm font-mono">
                               <div><strong>Input:</strong> {example.input}</div>
@@ -744,7 +769,7 @@ var solution = function(nums, target) {
                 <div className="h-full flex flex-col">
                   <div className="p-6 pb-2">
                     <h2 className="text-xl font-bold mb-3">AI Coding Assistant</h2>
-                    <div className="bg-base-200 rounded-lg p-4 mb-3">
+                    <div className="bg-slate-800 rounded-lg p-4 mb-3">
                       <p className="text-sm text-gray-600">
                         Ask me anything about this problem! I can help you understand the concepts, 
                         debug your code, or explain solutions.
@@ -773,27 +798,27 @@ var solution = function(nums, target) {
       </div>
 
       {/* Right Panel */}
-      <div className="w-1/2 flex flex-col">
+      <div className="w-1/2 flex flex-col bg-slate-900/60 backdrop-blur-xl relative z-10 my-2 mr-2 rounded-2xl overflow-hidden shadow-clay border border-white/10">
         {/* Right Tabs */}
-        <div className="tabs tabs-bordered bg-base-200 px-4">
-          <button 
-            className={`tab ${activeRightTab === 'code' ? 'tab-active' : ''}`}
-            onClick={() => setActiveRightTab('code')}
-          >
-            Code
-          </button>
-          <button 
-            className={`tab ${activeRightTab === 'testcase' ? 'tab-active' : ''}`}
-            onClick={() => setActiveRightTab('testcase')}
-          >
-            Testcase
-          </button>
-          <button 
-            className={`tab ${activeRightTab === 'result' ? 'tab-active' : ''}`}
-            onClick={() => setActiveRightTab('result')}
-          >
-            Result
-          </button>
+        <div className="flex px-4 pt-4 pb-0 bg-slate-950/30 border-b border-white/5 space-x-2 z-20">
+          {[
+            { id: 'code', label: 'Code Editor' },
+            { id: 'testcase', label: 'Testcases' },
+            { id: 'result', label: 'Result' }
+          ].map(tab => (
+            <button 
+              key={tab.id}
+              className={`px-4 py-3 text-sm font-bold transition-all relative ${
+                activeRightTab === tab.id ? 'text-fuchsia-400' : 'text-slate-500 hover:text-slate-300'
+              }`}
+              onClick={() => setActiveRightTab(tab.id)}
+            >
+              {tab.label}
+              {activeRightTab === tab.id && (
+                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-fuchsia-400 shadow-[0_-2px_10px_rgba(232,121,249,0.8)] rounded-t-full"></div>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Right Content */}
@@ -801,12 +826,16 @@ var solution = function(nums, target) {
           {activeRightTab === 'code' && (
             <div className="flex-1 flex flex-col">
               {/* Language Selector */}
-              <div className="flex justify-between items-center p-4 border-b border-base-300">
-                <div className="flex gap-2">
+              <div className="flex justify-between items-center p-3 bg-slate-950/50 border-b border-white/5 z-20">
+                <div className="flex gap-2 p-1 bg-slate-900 rounded-xl shadow-clay-inner">
                   {['cpp', 'java', 'python', 'javascript'].map((lang) => (
                     <button
                       key={lang}
-                      className={`btn btn-sm ${selectedLanguage === lang ? 'btn-primary' : 'btn-ghost'}`}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        selectedLanguage === lang 
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-glass' 
+                          : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                      }`}
                       onClick={() => handleLanguageChange(lang)}
                       disabled={actionLoading || isUpdatingCode}
                     >
@@ -814,9 +843,6 @@ var solution = function(nums, target) {
                     </button>
                   ))}
                 </div>
-                <span className="text-xs text-gray-500">
-                  Current: {getLanguageDisplayName(selectedLanguage)}
-                </span>
               </div>
 
               {/* Monaco Editor */}
@@ -828,7 +854,8 @@ var solution = function(nums, target) {
                   value={code}
                   onChange={handleEditorChange}
                   onMount={handleEditorDidMount}
-                  theme="vs-dark"
+                  beforeMount={handleEditorWillMount}
+                  theme="codearena-dark"
                   options={{
                     fontSize: 14,
                     minimap: { enabled: false },
@@ -854,25 +881,23 @@ var solution = function(nums, target) {
               </div>
 
               {/* Action Buttons */}
-              <div className="p-4 border-t border-base-300 flex justify-between">
-                <div className="flex gap-2">
-                  <button 
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => setActiveRightTab('testcase')}
-                  >
-                    Console
-                  </button>
-                </div>
-                <div className="flex gap-2">
+              <div className="p-4 bg-slate-950/80 backdrop-blur-xl border-t border-white/10 flex justify-between items-center z-20">
+                <button 
+                  className="px-5 py-2.5 rounded-xl bg-slate-800 border border-white/10 text-slate-300 text-sm font-bold hover:bg-slate-700 shadow-clay-inner transition-colors"
+                  onClick={() => setActiveRightTab('testcase')}
+                >
+                  Console
+                </button>
+                <div className="flex gap-3">
                   <button
-                    className={`btn btn-outline btn-sm ${actionLoading ? 'loading' : ''}`}
+                    className={`px-6 py-2.5 rounded-xl border border-emerald-500/50 text-emerald-400 text-sm font-bold hover:bg-emerald-500/10 transition-all ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={handleRun}
                     disabled={actionLoading || !code.trim() || isUpdatingCode}
                   >
-                    Run
+                    {actionLoading ? 'Running...' : 'Run Code'}
                   </button>
                   <button
-                    className={`btn btn-primary btn-sm ${actionLoading ? 'loading' : ''}`}
+                    className={`px-8 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-black shadow-mirror hover:shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all ${actionLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={handleSubmitCode}
                     disabled={actionLoading || !code.trim() || isUpdatingCode}
                   >
@@ -917,7 +942,7 @@ var solution = function(nums, target) {
                             {runResult.testCases.map((tc, i) => renderTestCase(tc, i))}
                           </div>
                         ) : runResult.message ? (
-                          <div className="mt-3 p-2 bg-base-100 rounded">
+                          <div className="mt-3 p-2 bg-slate-900 rounded">
                             <p>{runResult.message}</p>
                           </div>
                         ) : null}
@@ -1436,8 +1461,8 @@ export default ProblemPage;
 //           </div>
 //         ) : (
 //           filteredSolutions.map((solution, index) => (
-//             <div key={index} className="border border-base-300 rounded-lg">
-//               <div className="bg-base-200 px-4 py-2 rounded-t-lg flex justify-between items-center">
+//             <div key={index} className="border border-slate-700 rounded-lg">
+//               <div className="bg-slate-800 px-4 py-2 rounded-t-lg flex justify-between items-center">
 //                 <h3 className="font-semibold">{getLanguageDisplayName(solution.language)} Solution</h3>
 //                 <span className="text-xs badge badge-success">Official Solution</span>
 //               </div>
@@ -1466,7 +1491,7 @@ export default ProblemPage;
 //                   }}
 //                 />
 //               </div>
-//               <div className="p-4 bg-base-100 border-t border-base-300">
+//               <div className="p-4 bg-slate-900 border-t border-slate-700">
 //                 <div className="mt-3">
 //                   <button 
 //                     className="btn btn-sm btn-outline"
@@ -1601,11 +1626,11 @@ export default ProblemPage;
 //   }
 
 //   return (
-//     <div className="h-screen flex bg-base-100">
+//     <div className="h-screen flex bg-slate-900">
 //       {/* Left Panel */}
-//       <div className="w-1/2 flex flex-col border-r border-base-300">
+//       <div className="w-1/2 flex flex-col border-r border-slate-700">
 //         {/* Header with Back Button */}
-//         <div className="flex items-center justify-between p-4 bg-base-200 border-b border-base-300">
+//         <div className="flex items-center justify-between p-4 bg-slate-800 border-b border-slate-700">
 //           <div className="flex items-center gap-3">
 //             <Link 
 //               to="/" 
@@ -1623,7 +1648,7 @@ export default ProblemPage;
 //         </div>
 
 //         {/* Left Tabs */}
-//         <div className="tabs tabs-bordered bg-base-200 px-4">
+//         <div className="tabs tabs-bordered bg-slate-800 px-4">
 //           <button 
 //             className={`tab ${activeLeftTab === 'description' ? 'tab-active' : ''}`}
 //             onClick={() => setActiveLeftTab('description')}
@@ -1677,7 +1702,7 @@ export default ProblemPage;
 //                       <h3 className="text-lg font-semibold mb-4">Examples:</h3>
 //                       <div className="space-y-4">
 //                         {problem.visibleTestCases.map((example, index) => (
-//                           <div key={index} className="bg-base-200 p-4 rounded-lg">
+//                           <div key={index} className="bg-slate-800 p-4 rounded-lg">
 //                             <h4 className="font-semibold mb-2">Example {index + 1}:</h4>
 //                             <div className="space-y-2 text-sm font-mono">
 //                               <div><strong>Input:</strong> {example.input}</div>
@@ -1720,7 +1745,7 @@ export default ProblemPage;
 //                 <div className="h-full flex flex-col">
 //                   <div className="p-6 pb-2">
 //                     <h2 className="text-xl font-bold mb-3">AI Coding Assistant</h2>
-//                     <div className="bg-base-200 rounded-lg p-4 mb-3">
+//                     <div className="bg-slate-800 rounded-lg p-4 mb-3">
 //                       <p className="text-sm text-gray-600 mb-2">
 //                         Ask me anything about this problem! I can help you understand the concepts, 
 //                         debug your code, or explain solutions.
@@ -1756,7 +1781,7 @@ export default ProblemPage;
 //       {/* Right Panel */}
 //       <div className="w-1/2 flex flex-col">
 //         {/* Right Tabs */}
-//         <div className="tabs tabs-bordered bg-base-200 px-4">
+//         <div className="tabs tabs-bordered bg-slate-800 px-4">
 //           <button 
 //             className={`tab ${activeRightTab === 'code' ? 'tab-active' : ''}`}
 //             onClick={() => setActiveRightTab('code')}
@@ -1782,7 +1807,7 @@ export default ProblemPage;
 //           {activeRightTab === 'code' && (
 //             <div className="flex-1 flex flex-col">
 //               {/* Language Selector */}
-//               <div className="flex justify-between items-center p-4 border-b border-base-300">
+//               <div className="flex justify-between items-center p-4 border-b border-slate-700">
 //                 <div className="flex gap-2">
 //                   {['cpp', 'java', 'python', 'javascript'].map((lang) => (
 //                     <button
@@ -1835,7 +1860,7 @@ export default ProblemPage;
 //               </div>
 
 //               {/* Action Buttons */}
-//               <div className="p-4 border-t border-base-300 flex justify-between">
+//               <div className="p-4 border-t border-slate-700 flex justify-between">
 //                 <div className="flex gap-2">
 //                   <button 
 //                     className="btn btn-ghost btn-sm"
@@ -1878,7 +1903,7 @@ export default ProblemPage;
                         
 //                         <div className="mt-4 space-y-2">
 //                           {runResult.testCases.map((tc, i) => (
-//                             <div key={i} className="bg-base-100 p-3 rounded text-xs">
+//                             <div key={i} className="bg-slate-900 p-3 rounded text-xs">
 //                               <div className="font-mono">
 //                                 <div><strong>Input:</strong> {tc.stdin}</div>
 //                                 <div><strong>Expected:</strong> {tc.expected_output}</div>
@@ -1896,7 +1921,7 @@ export default ProblemPage;
 //                         <h4 className="font-bold">❌ Error</h4>
 //                         <div className="mt-4 space-y-2">
 //                           {runResult.testCases.map((tc, i) => (
-//                             <div key={i} className="bg-base-100 p-3 rounded text-xs">
+//                             <div key={i} className="bg-slate-900 p-3 rounded text-xs">
 //                               <div className="font-mono">
 //                                 <div><strong>Input:</strong> {tc.stdin}</div>
 //                                 <div><strong>Expected:</strong> {tc.expected_output}</div>
@@ -2400,7 +2425,7 @@ export default ProblemPage;
 //           </div>
           
 //           {/* Video information */}
-//           <div className="mt-6 bg-base-200 p-4 rounded-lg">
+//           <div className="mt-6 bg-slate-800 p-4 rounded-lg">
 //             <h3 className="text-lg font-semibold mb-2">Video Information</h3>
 //             <div className="grid grid-cols-2 gap-4 text-sm">
 //               <div>
@@ -2476,8 +2501,8 @@ export default ProblemPage;
 //           </div>
 //         ) : (
 //           filteredSolutions.map((solution, index) => (
-//             <div key={index} className="border border-base-300 rounded-lg">
-//               <div className="bg-base-200 px-4 py-2 rounded-t-lg flex justify-between items-center">
+//             <div key={index} className="border border-slate-700 rounded-lg">
+//               <div className="bg-slate-800 px-4 py-2 rounded-t-lg flex justify-between items-center">
 //                 <h3 className="font-semibold">{getLanguageDisplayName(solution.language)} Solution</h3>
 //                 <span className="text-xs badge badge-success">Official Solution</span>
 //               </div>
@@ -2506,7 +2531,7 @@ export default ProblemPage;
 //                   }}
 //                 />
 //               </div>
-//               <div className="p-4 bg-base-100 border-t border-base-300">
+//               <div className="p-4 bg-slate-900 border-t border-slate-700">
 //                 <div className="mt-3">
 //                   <button 
 //                     className="btn btn-sm btn-outline"
@@ -2641,11 +2666,11 @@ export default ProblemPage;
 //   }
 
 //   return (
-//     <div className="h-screen flex bg-base-100">
+//     <div className="h-screen flex bg-slate-900">
 //       {/* Left Panel */}
-//       <div className="w-1/2 flex flex-col border-r border-base-300">
+//       <div className="w-1/2 flex flex-col border-r border-slate-700">
 //         {/* Header with Back Button */}
-//         <div className="flex items-center justify-between p-4 bg-base-200 border-b border-base-300">
+//         <div className="flex items-center justify-between p-4 bg-slate-800 border-b border-slate-700">
 //           <div className="flex items-center gap-3">
 //             <Link 
 //               to="/" 
@@ -2663,7 +2688,7 @@ export default ProblemPage;
 //         </div>
 
 //         {/* Left Tabs */}
-//         <div className="tabs tabs-bordered bg-base-200 px-4">
+//         <div className="tabs tabs-bordered bg-slate-800 px-4">
 //           <button 
 //             className={`tab ${activeLeftTab === 'description' ? 'tab-active' : ''}`}
 //             onClick={() => setActiveLeftTab('description')}
@@ -2717,7 +2742,7 @@ export default ProblemPage;
 //                       <h3 className="text-lg font-semibold mb-4">Examples:</h3>
 //                       <div className="space-y-4">
 //                         {problem.visibleTestCases.map((example, index) => (
-//                           <div key={index} className="bg-base-200 p-4 rounded-lg">
+//                           <div key={index} className="bg-slate-800 p-4 rounded-lg">
 //                             <h4 className="font-semibold mb-2">Example {index + 1}:</h4>
 //                             <div className="space-y-2 text-sm font-mono">
 //                               <div><strong>Input:</strong> {example.input}</div>
@@ -2747,7 +2772,7 @@ export default ProblemPage;
 //                 <div className="h-full flex flex-col">
 //                   <div className="p-6 pb-2">
 //                     <h2 className="text-xl font-bold mb-3">AI Coding Assistant</h2>
-//                     <div className="bg-base-200 rounded-lg p-4 mb-3">
+//                     <div className="bg-slate-800 rounded-lg p-4 mb-3">
 //                       <p className="text-sm text-gray-600 mb-2">
 //                         Ask me anything about this problem! I can help you understand the concepts, 
 //                         debug your code, or explain solutions.
@@ -2783,7 +2808,7 @@ export default ProblemPage;
 //       {/* Right Panel */}
 //       <div className="w-1/2 flex flex-col">
 //         {/* Right Tabs */}
-//         <div className="tabs tabs-bordered bg-base-200 px-4">
+//         <div className="tabs tabs-bordered bg-slate-800 px-4">
 //           <button 
 //             className={`tab ${activeRightTab === 'code' ? 'tab-active' : ''}`}
 //             onClick={() => setActiveRightTab('code')}
@@ -2809,7 +2834,7 @@ export default ProblemPage;
 //           {activeRightTab === 'code' && (
 //             <div className="flex-1 flex flex-col">
 //               {/* Language Selector */}
-//               <div className="flex justify-between items-center p-4 border-b border-base-300">
+//               <div className="flex justify-between items-center p-4 border-b border-slate-700">
 //                 <div className="flex gap-2">
 //                   {['cpp', 'java', 'python', 'javascript'].map((lang) => (
 //                     <button
@@ -2862,7 +2887,7 @@ export default ProblemPage;
 //               </div>
 
 //               {/* Action Buttons */}
-//               <div className="p-4 border-t border-base-300 flex justify-between">
+//               <div className="p-4 border-t border-slate-700 flex justify-between">
 //                 <div className="flex gap-2">
 //                   <button 
 //                     className="btn btn-ghost btn-sm"
@@ -2905,7 +2930,7 @@ export default ProblemPage;
                         
 //                         <div className="mt-4 space-y-2">
 //                           {runResult.testCases.map((tc, i) => (
-//                             <div key={i} className="bg-base-100 p-3 rounded text-xs">
+//                             <div key={i} className="bg-slate-900 p-3 rounded text-xs">
 //                               <div className="font-mono">
 //                                 <div><strong>Input:</strong> {tc.stdin}</div>
 //                                 <div><strong>Expected:</strong> {tc.expected_output}</div>
@@ -2923,7 +2948,7 @@ export default ProblemPage;
 //                         <h4 className="font-bold">❌ Error</h4>
 //                         <div className="mt-4 space-y-2">
 //                           {runResult.testCases.map((tc, i) => (
-//                             <div key={i} className="bg-base-100 p-3 rounded text-xs">
+//                             <div key={i} className="bg-slate-900 p-3 rounded text-xs">
 //                               <div className="font-mono">
 //                                 <div><strong>Input:</strong> {tc.stdin}</div>
 //                                 <div><strong>Expected:</strong> {tc.expected_output}</div>
