@@ -312,12 +312,12 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
     return (
         <div className="flex flex-col h-full max-h-[80vh] min-h-[500px]">
             {/* Header with actions */}
-            <div className="flex justify-between items-center p-4 border-b border-base-300 bg-base-100">
+            <div className="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-800">
                 <h3 className="font-semibold">AI Coding Assistant</h3>
                 <div className="flex gap-2">
                     <button 
                         onClick={sendCodeForReview}
-                        className="btn btn-sm btn-outline btn-primary"
+                        className="btn btn-sm btn-outline border-emerald-500 text-emerald-500 hover:bg-emerald-500 hover:text-white hover:border-emerald-500"
                         title="Send current code for review"
                         disabled={isLoading}
                     >
@@ -326,7 +326,7 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
                     </button>
                     <button 
                         onClick={resetChat}
-                        className="btn btn-sm btn-ghost text-error"
+                        className="btn btn-sm btn-ghost text-red-400 hover:bg-red-500/20"
                         title="Reset conversation"
                         disabled={isLoading}
                     >
@@ -336,7 +336,7 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
             </div>
 
             {/* Chat messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-base-100">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-slate-900">
                 {messages.map((msg, index) => (
                     <div 
                         key={index} 
@@ -344,8 +344,8 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
                     >
                         <div className={`max-w-3xl rounded-2xl p-4 ${
                             msg.role === "user" 
-                                ? "bg-primary text-primary-content ml-10" 
-                                : "bg-base-200 text-base-content mr-10"
+                                ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 ml-10" 
+                                : "bg-slate-800 text-slate-300 border border-slate-700 mr-10"
                         }`}>
                             <div className="text-sm">
                                 {renderMessageContent(msg.parts[0].text, index)}
@@ -355,7 +355,7 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
                 ))}
                 {isLoading && (
                     <div className="flex justify-start">
-                        <div className="bg-base-200 text-base-content rounded-2xl p-4 mr-10 max-w-3xl">
+                        <div className="bg-slate-800 text-slate-300 border border-slate-700 rounded-2xl p-4 mr-10 max-w-3xl">
                             <div className="flex items-center gap-2">
                                 <span className="loading loading-dots loading-sm"></span>
                                 <span>AI is thinking...</span>
@@ -369,12 +369,12 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
             {/* Input form */}
             <form 
                 onSubmit={handleSubmit(onSubmit)} 
-                className="sticky bottom-0 p-4 bg-base-100 border-t"
+                className="sticky bottom-0 p-4 bg-slate-900 border-t border-slate-700"
             >
                 <div className="flex items-center gap-2">
                     <input 
                         placeholder="Ask about the problem or share your code..." 
-                        className="input input-bordered flex-1" 
+                        className="input bg-slate-800 border-slate-700 text-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 flex-1" 
                         {...register("message", { 
                             required: "Message is required", 
                             minLength: { value: 2, message: "Message too short" } 
@@ -383,7 +383,7 @@ function ChatAi({ problem, currentCode, currentLanguage }) {
                     />
                     <button 
                         type="submit" 
-                        className="btn btn-primary btn-square"
+                        className="btn bg-emerald-500 hover:bg-emerald-600 border-none text-white btn-square shadow-[0_0_15px_rgba(16,185,129,0.3)]"
                         disabled={errors.message || isLoading}
                     >
                         <Send size={20} />

@@ -1,483 +1,296 @@
-// src/pages/LandingPage.jsx
-import React, { useState, useEffect } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Menu } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, useScroll, useTransform, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { ArrowRight, Menu, Code2, Users, Trophy, Sparkles, Zap, Shield, Infinity as InfinityIcon } from "lucide-react";
 import { useNavigate } from "react-router";
 
-// Use inline SVG for icons since external libraries can't be imported in a single file
-const CodeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-cyan-400">
-    <path d="m18 16 4-4-4-4"></path>
-    <path d="m6 8-4 4 4 4"></path>
-    <path d="m14.5 4-5 16"></path>
-  </svg>
-);
+import cppIcon from '../images/cpp_icon.png';
+import jsIcon from '../images/javascript.png';
+import javaIcon from '../images/java_icon.png';
+import pythonIcon from '../images/python.webp';
+import Logo from '../images/Code.png';
 
-const UserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-fuchsia-400">
-    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-);
-
-const RocketIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8 text-blue-400">
-    <path d="M4.5 16.5c-1.5 1.26-2.25 2.52-2.25 3.78 0 2.4-1.5 4.5-3 6.75"></path>
-    <path d="M14 2c2.7.27 4.9 2 6 4s1.3 5.4 1 8c-.8 3.3-5.2 5.5-8 5.8"></path>
-    <path d="M17.5 19c-1.5 1.26-2.25 2.52-2.25 3.78 0 2.4-1.5 4.5-3 6.75"></path>
-  </svg>
-);
-
-const AnimatedCodeTerminal = () => {
-  const codeWords = [
-    { word: "//", color: "text-gray-500" }, { word: "CodeArena", color: "text-gray-500" }, { word: "-", color: "text-gray-500" }, { word: "Where", color: "text-gray-500" }, { word: "every", color: "text-gray-500" }, { word: "line", color: "text-gray-500" }, { word: "of", color: "text-gray-500" }, { word: "code", color: "text-gray-500" }, { word: "matters.", color: "text-gray-500" }, { word: "\n" },
-    { word: "#include", color: "text-blue-400" }, { word: "<iostream>", color: "text-red-400" }, { word: "\n" },
-    { word: "#include", color: "text-blue-400" }, { word: "<string>", color: "text-red-400" }, { word: "\n" },
-    { word: "\n" },
-    { word: "using", color: "text-blue-400" }, { word: "namespace", color: "text-blue-400" }, { word: "std;", color: "text-white" }, { word: "\n" },
-    { word: "\n" },
-    { word: "void", color: "text-blue-400" }, { word: "ignite_passion()", color: "text-white" }, { word: "{", color: "text-white" }, { word: "\n" },
-    { word: "    string", color: "text-blue-400" }, { word: "message", color: "text-white" }, { word: "=", color: "text-white" }, { word: "\"Every", color: "text-green-400" }, { word: "bug", color: "text-green-400" }, { word: "fixed", color: "text-green-400" }, { word: "is", color: "text-green-400" }, { word: "a", color: "text-green-400" }, { word: "step", color: "text-green-400" }, { word: "forward.\";", color: "text-green-400" }, { word: "\n" },
-    { word: "    cout", color: "text-white" }, { word: "<<", color: "text-white" }, { word: "message", color: "text-white" }, { word: "<<", color: "text-white" }, { word: "endl;", color: "text-white" }, { word: "\n" },
-    { word: "}", color: "text-white" }, { word: "\n" },
-    { word: "\n" },
-    { word: "int", color: "text-blue-400" }, { word: "main()", color: "text-white" }, { word: "{", color: "text-white" }, { word: "\n" },
-    { word: "    ignite_passion();", color: "text-white" }, { word: "\n" },
-    { word: "    return", color: "text-blue-400" }, { word: "0;", color: "text-white" }, { word: "\n" },
-    { word: "}", color: "text-white" }, { word: "\n" },
-  ];
-
-  const [typedWords, setTypedWords] = useState([]);
-  const [wordIndex, setWordIndex] = useState(0);
-  const [animationKey, setAnimationKey] = useState(0);
-
-  useEffect(() => {
-    if (wordIndex < codeWords.length) {
-      const timeoutId = setTimeout(() => {
-        setTypedWords(prev => [...prev, codeWords[wordIndex]]);
-        setWordIndex(wordIndex + 1);
-      }, 50); // Typing speed
-      return () => clearTimeout(timeoutId);
-    } else {
-      const timeoutId = setTimeout(() => {
-        setTypedWords([]);
-        setWordIndex(0);
-        setAnimationKey(prev => prev + 1); // Reset animation
-      }, 2000); // Delay before erasing and restarting
-      return () => clearTimeout(timeoutId);
-    }
-  }, [wordIndex, animationKey, codeWords.length]);
-
-  const renderWords = () => {
-    let output = [];
-    let lineContent = [];
-    let lineKey = 0;
-
-    typedWords.forEach((item, index) => {
-      if (item.word === "\n") {
-        output.push(<span key={lineKey++}>{lineContent}</span>);
-        output.push(<br key={`br-${index}`} />);
-        lineContent = [];
-      } else {
-        lineContent.push(<span key={index} className={item.color}>{item.word}&nbsp;</span>);
-      }
-    });
-
-    output.push(<span key={lineKey++}>{lineContent}</span>);
-    return output;
-  };
-
-  return (
-    <div key={animationKey} className="bg-gray-900 p-8 sm:p-12 rounded-2xl border border-gray-700 shadow-xl overflow-hidden font-mono text-sm leading-relaxed h-[400px]">
-      <pre className="h-full whitespace-pre-wrap">
-        {renderWords()}
-        <motion.span
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 3 }}
-          transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
-        >
-          |
-        </motion.span>
-      </pre>
-    </div>
-  );
-};
-
+// Sleek Nav
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-gray-950/80 backdrop-blur-2xl border-b border-gray-800">
-      <div className="container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
-        <a href="#hero" className="text-2xl font-extrabold text-white flex items-center">
-          {/* Your logo with slight brightness */}
-          <img
-            src="/src/images/Code.png"
-            alt="CodeArena Logo"
-            className="w-14 h-10 mr-3 brightness-110 contrast-110"
-          />
-          <span>CodeArena</span>
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${scrolled ? "bg-slate-950/60 backdrop-blur-glass border-b border-white/10 shadow-glass" : "bg-transparent"
+        }`}
+    >
+      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <a href="#hero" className="text-2xl font-extrabold text-white flex items-center gap-3 group">
+          <div className="flex items-center justify-center group-hover:scale-110 transition-transform">
+            <img src={Logo} alt="CodeArena Logo" className="w-20 h-20 object-contain drop-shadow-[0_0_15px_rgba(6,182,212,0.5)]" />
+          </div>
+          <span className="tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">CodeArena</span>
         </a>
-        <div className="hidden md:flex space-x-8">
-          <a href="#features" className="text-gray-300 hover:text-white transition-colors duration-300">Features</a>
-          <a href="#challenges" className="text-gray-300 hover:text-white transition-colors duration-300">Challenges</a>
-          <a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-300">Contact Us</a>
+
+        <div className="hidden md:flex space-x-1 border border-white/10 bg-white/5 backdrop-blur-md rounded-full px-2 py-1 shadow-clay">
+          {["Features", "Challenges", "Community"].map((item) => (
+            <a
+              key={item}
+              href={`#${item.toLowerCase()}`}
+              className="px-5 py-2 text-sm font-semibold text-slate-300 hover:text-white hover:bg-white/10 rounded-full transition-all"
+            >
+              {item}
+            </a>
+          ))}
         </div>
-        <div className="flex space-x-4">
+
+        <div className="hidden md:flex items-center space-x-4">
           <button
             onClick={() => navigate('/login')}
-            className="text-gray-300 hover:text-white transition-colors duration-300 hidden md:block"
+            className="text-sm font-bold text-slate-300 hover:text-white transition-colors"
           >
-            Login
+            Sign In
           </button>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => navigate('/signup')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 hidden md:block"
+            className="px-5 py-2.5 bg-white text-slate-950 rounded-xl hover:bg-slate-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.3)] font-extrabold text-sm"
           >
-            Sign Up
-          </button>
+            Start Free
+          </motion.button>
         </div>
-        <div className="md:hidden">
-          <button onClick={() => setIsOpen(!isOpen)} className="text-white focus:outline-none">
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
+
+        <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-white p-2">
+          <Menu className="w-6 h-6" />
+        </button>
       </div>
-      {isOpen && (
-        <div className="md:hidden">
-          <div className="flex flex-col space-y-4 px-4 py-4 border-t border-gray-800">
-            <a href="#features" className="text-gray-300 hover:text-white transition-colors duration-300" onClick={() => setIsOpen(false)}>Features</a>
-            <a href="#challenges" className="text-gray-300 hover:text-white transition-colors duration-300" onClick={() => setIsOpen(false)}>Challenges</a>
-            <a href="#contact" className="text-gray-300 hover:text-white transition-colors duration-300" onClick={() => setIsOpen(false)}>Contact Us</a>
-            <button
-              onClick={() => {
-                navigate('/login');
-                setIsOpen(false);
-              }}
-              className="text-gray-300 hover:text-white transition-colors duration-300 text-left"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => {
-                navigate('/signup');
-                setIsOpen(false);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-300 text-left"
-            >
-              Sign Up
-            </button>
-          </div>
-        </div>
-      )}
-    </nav>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden bg-slate-950/95 backdrop-blur-xl border-t border-white/10 px-6 py-6"
+          >
+            <div className="flex flex-col space-y-4">
+              {["Features", "Challenges", "Community"].map((item) => (
+                <a key={item} href={`#${item.toLowerCase()}`} className="text-lg font-semibold text-slate-300" onClick={() => setIsOpen(false)}>{item}</a>
+              ))}
+              <hr className="border-white/10 my-4" />
+              <button onClick={() => navigate('/login')} className="text-lg font-semibold text-left text-slate-300">Sign In</button>
+              <button onClick={() => navigate('/signup')} className="text-lg font-extrabold text-left text-cyan-400">Start Free Account</button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
   );
 };
 
-const LandingPage = () => {
-  const { scrollYProgress } = useScroll();
+// Abstract Code Terminal (Mirrormorphic + 3D Tilt)
+const AbstractTerminal = () => {
+  const ref = useRef(null);
+
+  // Mouse tracking for 3D tilt
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x, { stiffness: 100, damping: 30 });
+  const mouseYSpring = useSpring(y, { stiffness: 100, damping: 30 });
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], [10, -10]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], [-10, 10]);
+
+  const handleMouseMove = (e) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
+  return (
+    <div className="relative w-full max-w-3xl mx-auto mt-16 perspective-1000" ref={ref} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      <motion.div
+        style={{ rotateX, rotateY }}
+        className="w-full bg-slate-900/60 backdrop-blur-xl border border-white/20 shadow-mirror rounded-3xl overflow-hidden transform-style-3d relative transition-all duration-300 ease-out"
+      >
+        <div className="absolute inset-0 bg-mirror-gradient opacity-30 pointer-events-none"></div>
+        <div className="flex items-center px-4 py-3 bg-white/5 border-b border-white/10">
+          <div className="flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500/80 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_10px_rgba(234,179,8,0.5)]"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500/80 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+          </div>
+          <div className="mx-auto text-xs font-mono text-slate-400">codearena_engine.cpp</div>
+        </div>
+        <div className="p-6 font-mono text-sm leading-relaxed text-slate-300">
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">1</span>
+            <span><span className="text-fuchsia-400">#include</span> <span className="text-emerald-400">&lt;iostream&gt;</span></span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">2</span>
+            <span><span className="text-fuchsia-400">#include</span> <span className="text-emerald-400">"CodeArena.h"</span></span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">3</span>
+            <br />
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">4</span>
+            <span><span className="text-blue-400">int</span> <span className="text-yellow-200">main</span>() {'{'}</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">5</span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;Engine arena = Engine::init();</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">6</span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-fuchsia-400">while</span> (arena.isRunning()) {'{'}</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">7</span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Developer dev = arena.connect();</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">8</span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dev.<span className="text-cyan-400">levelUp</span>();</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">9</span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;{'}'}</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">10</span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;<span className="text-fuchsia-400">return</span> <span className="text-orange-400">0</span>;</span>
+          </div>
+          <div className="flex">
+            <span className="text-slate-600 mr-4 select-none">11</span>
+            <span>{'}'}</span>
+          </div>
+          <div className="flex mt-2">
+            <span className="text-slate-600 mr-4 select-none">12</span>
+            <motion.div
+              animate={{ opacity: [1, 0] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+              className="w-2 h-4 bg-cyan-400 mt-1"
+            ></motion.div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Glow Effects */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-cyan-500/20 blur-[100px] -z-10 rounded-full"></div>
+    </div>
+  );
+};
+export default function LandingPage() {
   const navigate = useNavigate();
-
-  const translateYHero = useTransform(scrollYProgress, [0, 0.5], [0, -100]);
-  const opacityHero = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
-
-  const heroTextVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
-  };
-
-  const featureVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i) => ({
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: i * 0.2,
-        duration: 0.6,
-        ease: "easeOut",
-      },
-    }),
-  };
+  const { scrollYProgress } = useScroll();
+  const translateYHero = useTransform(scrollYProgress, [0, 0.5], [0, 150]);
+  const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   const testimonials = [
     { name: "Divyanshi Verma", quote: "CodeArena transformed how my team approaches coding challenges. The real-time feedback is invaluable.", avatar: "https://placehold.co/40x40/007bff/fff?text=DV" },
     { name: "Abhishek Sahu", quote: "The community is incredible. I've learned so much just by competing and collaborating with other developers.", avatar: "https://placehold.co/40x40/ff69b4/fff?text=AS" },
-    {
-      name: "Diya Shukla",
-      quote: "The challenges on CodeArena keep me motivated. Every problem feels like a new opportunity to grow and sharpen my skills.",
-      avatar: "https://placehold.co/40x40/17a2b8/fff?text=DS"
-    }
-  ];
-
-  const challenges = [
-    { id: 1, title: "Find the Longest Substring", difficulty: "Easy", description: "Given a string, find the length of the longest substring without repeating characters." },
-    { id: 2, title: "Binary Search Tree", difficulty: "Medium", description: "Implement a binary search tree from scratch and perform basic operations." },
-    { id: 3, title: "Graph Traversal", difficulty: "Hard", description: "Find the shortest path between two nodes in a weighted graph using Dijkstra's algorithm." },
+    { name: "Diya Shukla", quote: "The challenges on CodeArena keep me motivated. Every problem feels like a new opportunity to grow and sharpen my skills.", avatar: "https://placehold.co/40x40/17a2b8/fff?text=DS" }
   ];
 
   const languages = [
-    {
-      name: "JavaScript",
-      icon: <img src="/src/images/javascript.png" alt="JavaScript" className="w-16 h-16 object-contain" />
-    },
-    {
-      name: "Python",
-      icon: <img src="/src/images/python.webp" alt="Python" className="w-16 h-16 object-contain" />
-    },
-    {
-      name: "Java",
-      icon: <img src="/src/images/java_icon.png" alt="Java" className="w-16 h-16 object-contain" />
-    },
-    {
-      name: "C++",
-      icon: <img src="/src/images/cpp_icon.png" alt="C++" className="w-16 h-16 object-contain" />
-    },
+    { name: "JavaScript", icon: <img src={jsIcon} alt="JavaScript" className="w-16 h-16 object-contain" /> },
+    { name: "Python", icon: <img src={pythonIcon} alt="Python" className="w-16 h-16 object-contain" /> },
+    { name: "Java", icon: <img src={javaIcon} alt="Java" className="w-16 h-16 object-contain" /> },
+    { name: "C++", icon: <img src={cppIcon} alt="C++" className="w-16 h-16 object-contain" /> },
   ];
 
-  return (
-    <div className="bg-gray-950 text-white font-sans overflow-x-hidden relative">
-      <style>
-        {`
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-          @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
-          body { font-family: 'Inter', sans-serif; }
-          .font-mono { font-family: 'Fira Code', monospace; }
-          .bg-radial-gradient-hero {
-            background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0) 70%), 
-                        radial-gradient(circle at bottom right, rgba(236, 72, 153, 0.1), rgba(236, 72, 153, 0) 70%),
-                        radial-gradient(circle at top left, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0) 70%);
-          }
-          .animate-pulse-slow {
-            animation: pulse-slow 6s infinite ease-in-out;
-          }
-          @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); opacity: 0.2; }
-            50% { transform: scale(1.05); opacity: 0.4; }
-          }
-        `}
-      </style>
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  useEffect(() => {
+    const updateMousePosition = (e) => setMousePosition({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", updateMousePosition);
+    return () => window.removeEventListener("mousemove", updateMousePosition);
+  }, []);
 
-      {/* Background orbs from login page */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <motion.div
-          className="absolute top-20 left-1/4 w-96 h-96 rounded-full bg-cyan-600/10 blur-3xl animate-pulse-slow"
-          initial={{ y: 0, opacity: 0.2 }}
-          animate={{ y: [0, 25, 0], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-32 right-1/4 w-80 h-80 rounded-full bg-fuchsia-600/10 blur-3xl animate-pulse-slow"
-          initial={{ y: 0, opacity: 0.2 }}
-          animate={{ y: [0, -30, 0], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
+  return (
+    <div className="bg-slate-950 text-white font-sans min-h-screen overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 z-30 transition-opacity duration-300" style={{ background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(6,182,212,0.1), transparent 40%)` }} />
       <Navbar />
-      <main className="relative z-10">
-        {/* Hero Section */}
-        <motion.section
-          id="hero"
-          className="min-h-screen flex flex-col items-center justify-center p-4 text-center bg-gray-950 bg-radial-gradient-hero relative"
-          style={{ translateY: translateYHero, opacity: opacityHero }}
-        >
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.8, ease: "easeOut" }} className="w-full max-w-4xl mx-auto pt-20">
-            <motion.h1
-              variants={heroTextVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
-              className="text-4xl sm:text-6xl md:text-7xl font-extrabold leading-tight text-white mb-4 drop-shadow-lg"
-            >
-              Unlock Your Potential. <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">Master Code.</span>
-            </motion.h1>
-            <motion.p
-              variants={heroTextVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ delay: 0.6, duration: 0.8, ease: "easeOut" }}
-              className="text-lg sm:text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto mb-8"
-            >
-              CodeArena is the ultimate platform for developers to sharpen their skills, collaborate on challenges, and climb the leaderboards.
-            </motion.p>
-            <motion.button
-              onClick={() => navigate('/signup')}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 1, duration: 0.5 }}
-              whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(59,130,246,0.4)" }}
-              className="inline-flex items-center space-x-2 px-8 py-4 font-bold text-lg rounded-full bg-blue-600 text-white shadow-xl transition-all duration-300 transform hover:bg-blue-700"
-            >
-              <span>Join the Arena</span>
-              <ArrowRight className="w-6 h-6" />
-            </motion.button>
-          </motion.div>
+
+      <main className="relative z-10 pt-32 pb-20">
+        <motion.section id="hero" style={{ y: translateYHero, opacity: opacityHero }} className="container mx-auto px-6 flex flex-col items-center text-center">
+          <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-[1.1] max-w-5xl">Master code. <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500">Outperform everyone.</span></h1>
+          <AbstractTerminal />
         </motion.section>
 
-        {/* Interactive Code Terminal Section */}
-        <section className="py-20 bg-gray-950 px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={heroTextVariants} className="text-center max-w-4xl mx-auto mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Code, Collaborate, Compete</h2>
-            <p className="text-lg text-gray-400">
-              Our platform is built to give you the ultimate coding experience. See for yourself.
-            </p>
+        {/* Supported Languages Section */}
+        <section className="py-20 px-4 text-center mt-20">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="max-w-4xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Languages You Can Master</h2>
+            <p className="text-lg text-slate-400">Practice and perfect your skills in a variety of popular programming languages.</p>
           </motion.div>
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.5 }}
-            variants={heroTextVariants}
-            className="max-w-4xl mx-auto h-[400px]"
-          >
-            <AnimatedCodeTerminal />
-          </motion.div>
-        </section>
-
-        {/* Features Section */}
-        <section id="features" className="py-20 bg-gray-950 px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={heroTextVariants} className="text-center max-w-4xl mx-auto mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Features Built for Developers</h2>
-            <p className="text-lg text-gray-400">
-              From real-time collaboration to advanced analytics, CodeArena provides everything you need to become a better coder.
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.5 }}
-              variants={featureVariants}
-              custom={0}
-              className="p-8 bg-gray-800/50 rounded-2xl border border-gray-700 backdrop-blur-sm shadow-xl hover:bg-gray-800 transition-all duration-300"
-            >
-              <div className="mb-4">
-                <CodeIcon />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Real-time Collaboration</h3>
-              <p className="text-gray-400">
-                Work on challenges with your friends in a shared coding environment, perfect for pair programming.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.5 }}
-              variants={featureVariants}
-              custom={1}
-              className="p-8 bg-gray-800/50 rounded-2xl border border-gray-700 backdrop-blur-sm shadow-xl hover:bg-gray-800 transition-all duration-300"
-            >
-              <div className="mb-4">
-                <RocketIcon />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Competitive Leaderboards</h3>
-              <p className="text-gray-400">
-                Test your skills against a global community of developers and see where you rank.
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.5 }}
-              variants={featureVariants}
-              custom={2}
-              className="p-8 bg-gray-800/50 rounded-2xl border border-gray-700 backdrop-blur-sm shadow-xl hover:bg-gray-800 transition-all duration-300"
-            >
-              <div className="mb-4">
-                <UserIcon />
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-2">Personalized Learning</h3>
-              <p className="text-gray-400">
-                Receive custom challenges and insights based on your progress and weaknesses.
-              </p>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Code Challenges Section */}
-        <section id="challenges" className="py-20 bg-gray-950 px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={heroTextVariants} className="text-center max-w-4xl mx-auto mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Challenge Your Limits</h2>
-            <p className="text-lg text-gray-400">
-              Dive into a vast library of coding challenges designed to sharpen your problem-solving skills.
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {challenges.map((challenge, index) => (
-              <motion.div
-                key={challenge.id}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.5 }}
-                variants={featureVariants}
-                custom={index}
-                className="p-6 bg-gray-800/50 rounded-2xl border border-gray-700 shadow-xl"
-              >
-                <h3 className="text-xl font-semibold text-white mb-2">{challenge.title}</h3>
-                <p className={`text-sm font-medium mb-2 w-fit px-2 py-1 rounded-full ${challenge.difficulty === 'Easy' ? 'bg-green-500/20 text-green-400' :
-                  challenge.difficulty === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
-                  }`}>
-                  {challenge.difficulty}
-                </p>
-                <p className="text-gray-400">{challenge.description}</p>
+          <div className="flex flex-wrap justify-center gap-8 max-w-4xl mx-auto">
+            {languages.map((lang, i) => (
+              <motion.div key={i} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="flex flex-col items-center p-6 bg-slate-900/50 rounded-2xl border border-white/10 shadow-glass transition-all duration-300 hover:scale-105 cursor-pointer hover:shadow-glass-hover">
+                {lang.icon}
+                <p className="mt-4 text-white font-semibold">{lang.name}</p>
               </motion.div>
             ))}
           </div>
         </section>
 
-        {/* Supported Languages Section */}
-        <section className="py-20 bg-gray-950 px-4 text-center">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={heroTextVariants} className="max-w-4xl mx-auto mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Languages You Can Master</h2>
-            <p className="text-lg text-gray-400">
-              Practice and perfect your skills in a variety of popular programming languages.
-            </p>
-          </motion.div>
-          <div className="flex flex-wrap justify-center gap-8 max-w-4xl mx-auto">
-            {languages.map((language, index) => (
-              <motion.div
-                key={index}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.5 }}
-                variants={featureVariants}
-                custom={index}
-                className="flex flex-col items-center p-6 bg-gray-800/50 rounded-2xl border border-gray-700 shadow-xl transition-all duration-300 hover:scale-105"
-              >
-                {language.icon}
-                <p className="mt-4 text-white font-semibold">{language.name}</p>
+        {/* Features Section */}
+        <section id="features" className="container mx-auto px-6 py-32 relative z-10">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight text-white">Why CodeArena?</h2>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">Everything you need to level up your engineering skills in one hyper-optimized platform.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              { title: "Real-time Collab", desc: "Pair program instantly.", icon: <Users size={32} /> },
+              { title: "Global Leaderboards", desc: "Rank up.", icon: <Trophy size={32} /> },
+              { title: "Enterprise Grade", desc: "Secure execution.", icon: <Shield size={32} /> }
+            ].map((f, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1, duration: 0.6 }} className="group relative bg-slate-900/50 backdrop-blur-md rounded-3xl p-8 border border-white/5 shadow-clay hover:shadow-glass-hover transition-all duration-500 hover:-translate-y-2 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl"></div>
+                <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-white/10 flex items-center justify-center text-cyan-400 mb-6 shadow-inner_clay group-hover:text-white transition-colors relative z-10">{f.icon}</div>
+                <h3 className="text-2xl font-bold mb-3 text-white relative z-10">{f.title}</h3>
+                <p className="text-slate-400 leading-relaxed relative z-10">{f.desc}</p>
               </motion.div>
             ))}
           </div>
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-20 bg-gray-950 px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }} variants={heroTextVariants} className="text-center max-w-4xl mx-auto mb-16">
+        <section className="py-20 bg-slate-950 px-4 relative z-10">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center max-w-4xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">What Our Users Say</h2>
-            <p className="text-lg text-gray-400">
-              Join thousands of developers who are already leveling up their skills with CodeArena.
-            </p>
+            <p className="text-lg text-slate-400">Join thousands of developers who are already leveling up their skills with CodeArena.</p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.5 }}
-                variants={featureVariants}
-                custom={index}
-                className="p-6 bg-gray-800/50 rounded-2xl border border-gray-700 shadow-xl"
-              >
-                <p className="text-gray-300 mb-4 italic">"{testimonial.quote}"</p>
+              <motion.div key={index} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }} className="p-6 bg-slate-900/50 rounded-2xl border border-white/10 shadow-glass">
+                <p className="text-slate-300 mb-4 italic">"{testimonial.quote}"</p>
                 <div className="flex items-center space-x-4">
                   <img src={testimonial.avatar} alt={testimonial.name} className="rounded-full w-10 h-10 border-2 border-white/20" />
                   <div>
                     <p className="font-semibold text-white">{testimonial.name}</p>
-                    <p className="text-sm text-gray-500">CodeArena User</p>
+                    <p className="text-sm text-slate-500">CodeArena User</p>
                   </div>
                 </div>
               </motion.div>
@@ -485,49 +298,31 @@ const LandingPage = () => {
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 bg-gray-950 px-4">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.5 }} variants={heroTextVariants} className="text-center max-w-4xl mx-auto p-12 bg-gray-800/50 rounded-3xl border border-gray-700 shadow-xl">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Ready to Master Your Craft?</h2>
-            <p className="text-lg text-gray-400 mb-8">
-              Start your journey today and become the developer you've always wanted to be.
-            </p>
-            <motion.button
-              onClick={() => navigate('/signup')}
-              whileHover={{ scale: 1.05, boxShadow: "0px 0px 20px rgba(59,130,246,0.4)" }}
-              className="inline-block px-10 py-4 font-bold text-lg rounded-full bg-blue-600 text-white shadow-xl transition-all duration-300 transform hover:bg-blue-700"
-            >
-              Sign Up Now
-            </motion.button>
+        {/* CTA SECTION */}
+        <section className="container mx-auto px-6 py-20 relative z-10">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="w-full max-w-5xl mx-auto rounded-[3rem] p-1 overflow-hidden relative shadow-[0_0_100px_rgba(6,182,212,0.2)]">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-500 to-fuchsia-500 animate-[spin_4s_linear_infinite] opacity-50 blur-lg"></div>
+            <div className="relative bg-slate-950 rounded-[2.8rem] p-12 md:p-20 text-center border border-white/10 z-10">
+              <h2 className="text-4xl md:text-6xl font-black mb-6">Ready to dominate?</h2>
+              <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">Join 10,000+ developers actively competing and collaborating right now.</p>
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate('/signup')} className="px-10 py-5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-xl rounded-2xl shadow-mirror hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] transition-all inline-flex items-center gap-3">
+                Create Account <ArrowRight size={24} />
+              </motion.button>
+            </div>
           </motion.div>
         </section>
-
-        {/* Footer */}
-        <footer id="contact" className="bg-gray-950 py-12 px-4 text-center border-t border-gray-800">
-          <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-8 md:space-y-0">
-            <div className="flex flex-col items-center md:items-start space-y-2">
-              <div className="text-white text-2xl font-bold">CodeArena</div>
-              <p className="text-gray-400 max-w-xs">
-                The ultimate platform to sharpen your coding skills and connect with a global community.
-              </p>
-            </div>
-            <div className="flex space-x-6 md:space-x-8 text-sm">
-              <div className="flex flex-col space-y-2 items-center">
-                <p className="font-semibold text-white">Contact Us</p>
-                <a href="mailto:your-email@example.com" className="text-gray-400 hover:text-white transition-colors">
-                  <div className="w-6 h-6"></div>
-                </a>
-                <a href="https://www.linkedin.com/in/your-profile" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                  <div className="w-6 h-6"></div>
-                </a>
-              </div>
-            </div>
-          </div>
-          <p className="text-gray-500 text-sm mt-8 pt-8 border-t border-gray-800">© 2025 CodeArena. All rights reserved.</p>
-        </footer>
       </main>
+
+      {/* Sleek Footer */}
+      <footer className="border-t border-white/10 bg-slate-950 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2 group cursor-pointer">
+            <Code2 className="text-cyan-400 group-hover:rotate-180 transition-transform duration-500" size={24} />
+            <span className="text-xl font-black tracking-tight text-white group-hover:text-cyan-400 transition-colors">CodeArena</span>
+          </div>
+          <p className="text-slate-500 font-medium">© 2026 CodeArena. Built for champions.</p>
+        </div>
+      </footer>
     </div>
   );
-};
-
-export default LandingPage;
+}

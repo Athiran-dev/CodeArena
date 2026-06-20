@@ -13,6 +13,12 @@ import AdminVideo from "./components/AdminVideo"
 import AdminDelete from "./components/AdminDelete"
 import AdminUpload from "./components/AdminUpload"
 
+// New Pages
+import Profile from "./pages/Profile";
+import Leaderboard from "./pages/Leaderboard";
+import Contests from "./pages/Contests";
+import ContestArena from "./pages/ContestArena";
+
 function App(){
   
   const dispatch = useDispatch();
@@ -42,6 +48,12 @@ function App(){
       <Route path="/admin/video" element={isAuthenticated && user?.role === 'admin' ? <AdminVideo /> : <Navigate to="/" />} />
       <Route path="/admin/upload/:problemId" element={isAuthenticated && user?.role === 'admin' ? <AdminUpload /> : <Navigate to="/" />} />
       <Route path="/problem/:problemId" element={<ProblemPage/>}></Route>
+      
+      {/* New Feature Routes */}
+      <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+      <Route path="/leaderboard" element={<Leaderboard />} />
+      <Route path="/contests" element={<Contests />} />
+      <Route path="/contest/:id" element={isAuthenticated ? <ContestArena /> : <Navigate to="/login" />} />
     </Routes>
   </>
   )

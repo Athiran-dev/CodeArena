@@ -1,16 +1,15 @@
 const { createClient } = require('redis');
 
 console.log('🔍 Loading Redis configuration...');
-console.log('📍 Redis Host: redis-14154.c212.ap-south-1-1.ec2.cloud.redislabs.com');
-console.log('📍 Redis Port: 14154');
+
+console.log('📍 Redis Port:', process.env.REDIS_PORT);
 
 const redisClient = createClient({
     username: 'default',
     password: process.env.REDIS_PASS,
     socket: {
-        host: 'redis-14154.c212.ap-south-1-1.ec2.cloud.redislabs.com',
-        port: 14154
-        // NO TLS
+        host: process.env.REDIS_HOST,
+        port: process.env.REDIS_PORT
     }
 });
 

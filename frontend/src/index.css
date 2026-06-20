@@ -1,2 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @plugin "daisyui";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Morphism Shadows - Extreme PRO Level */
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 1px 0 rgba(255, 255, 255, 0.3), inset 1px 0 1px 0 rgba(255, 255, 255, 0.1);
+  --shadow-glass-hover: 0 15px 45px 0 rgba(6, 182, 212, 0.4), inset 0 2px 2px 0 rgba(255, 255, 255, 0.6);
+  --shadow-clay: 10px 10px 20px rgba(0,0,0,0.5), -10px -10px 20px rgba(255,255,255,0.05), inset 2px 2px 5px rgba(255,255,255,0.1), inset -2px -2px 5px rgba(0,0,0,0.6);
+  --shadow-clay-inner: inset 8px 8px 16px rgba(0,0,0,0.7), inset -8px -8px 16px rgba(255,255,255,0.05);
+  --shadow-mirror: 0 20px 50px rgba(0,0,0,0.8), inset 0 2px 1px rgba(255,255,255,0.5), inset 0 -2px 1px rgba(0,0,0,0.8), inset 2px 0 1px rgba(255,255,255,0.3);
+
+  /* Custom Background Images / Gradients */
+  --background-image-mirror-gradient: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.05) 45%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.8) 100%);
+  --background-image-glass-gradient: linear-gradient(110deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.02) 100%);
+  --background-image-mesh-dark: radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
+
+  /* Animations */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-mesh: mesh 10s ease infinite alternate;
+  --animate-marquee: marquee 25s linear infinite;
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes pulse-slow {
+    0%, 100% { transform: scale(1); opacity: 0.2; }
+    50% { transform: scale(1.05); opacity: 0.5; }
+  }
+  @keyframes mesh {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
+  @keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); }
+  }
+}
+
+@layer base {
+  body {
+    background-color: #020617; /* slate-950 */
+    color: #F8FAFC; /* slate-50 */
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+}
