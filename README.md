@@ -1,146 +1,108 @@
-# CodeArena - Advanced Coding Platform
+# 🏆 CodeArena
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/react-19.1.0-blue)](https://reactjs.org/)
-[![MongoDB](https://img.shields.io/badge/mongodb-6.18.0-green)](https://www.mongodb.com/)
+![CodeArena Banner](https://img.shields.io/badge/CodeArena-Advanced_Coding_Platform-0ea5e9?style=for-the-badge&logo=codeforces)
 
-![CodeArena Landing Page](./landing-page-screenshot.png)
+**CodeArena** is a modern, high-performance competitive programming platform built with the MERN stack. Designed with a premium "Glassmorphism" UI, it provides an immersive arena for developers to solve algorithmic challenges, compete in live contests, and track their performance.
 
-> **A Next-Generation Competitive Programming Platform integrated with AI assistance.**
-
-**CodeArena** is a comprehensive coding platform designed to help developers practice data structures and algorithms. It features a robust code editor, multi-language support, real-time code execution, and a unique **AI Coding Assistant** powered by Google GenAI to help users learn and debug efficiently.
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-404D59?style=for-the-badge)
+![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)
+![Socket.io](https://img.shields.io/badge/Socket.io-black?style=for-the-badge&logo=socket.io&badgeColor=010101)
+![TailwindCSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 ---
 
-## 🌟 Key Features
+## ✨ Features
 
-### 💻 **Advanced Code Editor**
-*   **Monaco Editor Integration:** a rich code editing experience similar to VS Code.
-*   **Multi-Language Support:** Write and run code in **C++, Java, Python, and JavaScript**.
-*   **Syntax Highlighting:** Intelligent syntax highlighting and auto-formatting.
+- ⚔️ **Live Contest Arena**: Compete in real-time coding contests with a split-pane coding environment and live Socket.io integrated chat.
+- 🧠 **Algorithmic Challenges**: A rich library of problems categorized by difficulty and tags, with robust server-side pagination and filtering.
+- ⚡ **Code Execution Engine**: Secure code evaluation with multi-language support (C++, Java, Python, JavaScript).
+- 📈 **Dynamic User Profiles**: Track your coding journey with a 30-day activity graph (powered by Recharts) and detailed submission history.
+- 🏆 **Global Leaderboard**: See how you rank against other developers in the arena.
+- 🛡️ **Admin Overlord Dashboard**: Secure admin panel to create problems, manage test cases, and upload solution videos via Cloudinary.
+- 🎨 **Pro-Max UI/UX**: A stunning, responsive design featuring Glassmorphism, Claymorphism, and deep dark mode aesthetics.
 
-### 🤖 **AI-Powered Assistance**
-*   **Integrated AI Chat:** A built-in AI assistant (powered by **Google GenAI**) to help with:
-    *   **Debugging:** Explain why your code is failing.
-    *   **Concept Explanation:** Break down complex algorithms.
-    *   **Hints:** Get nudges in the right direction without revealing the full solution.
+---
 
-### ⚡ **Real-Time Execution & Submission**
-*   **Instant Feedback:** Run your code against sample test cases with immediate output.
-*   **Comprehensive Judging:** Submit solutions to be tested against hidden test cases.
-*   **Performance Metrics:** specific runtime and memory usage statistics for every submission.
-*   **Verdict System:** Clear status indicators for Accepted, Wrong Answer, Runtime Error, etc.
+## 📸 Sneak Peek
 
-### 📚 **Learning Resources**
-*   **Problem Collection:** A curated list of DSA problems with varying difficulty levels (Easy, Medium, Hard).
-*   **Editorials & Solutions:** Access official editorials and reference solutions in multiple languages.
-*   **Video Explanations:** Watch detailed video walkthroughs for complex problems.
+### Landing Page
+![Landing Page](./landing_page.png)
 
-### 👤 **User & Admin Portals**
-*   **User Dashboard:** Track your solved problems and submission history.
-*   **Admin Panel:** Powerful tools for admins to **Create, Update, and Delete** problems.
-*   **Authentication:** Secure Login and Signup using JWT and specialized middleware.
+### System Architecture
+![System Architecture](./system_architecture.png)
 
 ---
 
 ## 🛠️ Tech Stack
 
-This project is built using a modern **MERN** stack with additional specialized services:
+### Frontend
+- **Framework**: React.js (Vite)
+- **Styling**: Tailwind CSS, Framer Motion
+- **Charts**: Recharts
+- **State Management**: Redux Toolkit
 
-### **Frontend**
-*   **Framework:** React 19 (Vite)
-*   **State Management:** Redux Toolkit
-*   **Styling:** Tailwind CSS v4, DaisyUI
-*   **Code Editor:** @monaco-editor/react
-*   **Routing:** React Router v7
-*   **Animations:** Framer Motion
-*   **Validation:** Zod + React Hook Form
-
-### **Backend**
-*   **Runtime:** Node.js
-*   **Framework:** Express.js v5
-*   **Database:** MongoDB (Mongoose)
-*   **Caching:** Redis (for session/performance)
-*   **AI Engine:** @google/genai (Gemini API)
-*   **Authentication:** JWT, bcrypt
-*   **Media Storage:** Cloudinary
-*   **Real-time:** Socket.io (for live features)
+### Backend
+- **Runtime**: Node.js & Express.js
+- **Database**: MongoDB (Mongoose)
+- **Caching**: Redis (for JWT blacklisting)
+- **Real-time**: Socket.io
+- **Media**: Cloudinary (Video hosting)
 
 ---
 
-## 🏁 Getting Started
-
-### Quick Start
-
-For detailed setup instructions, see [SETUP.md](SETUP.md)
-
-```bash
-# Clone the repository
-git clone https://github.com/Aman-81/CodeArena.git
-cd CodeArena
-
-# Setup backend
-cd backend
-npm install
-cp src/.env.example src/.env
-# Edit src/.env with your credentials
-npm start
-
-# Setup frontend (in a new terminal)
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
+## 🚀 Getting Started
 
 ### Prerequisites
-*   Node.js (v18+)
-*   MongoDB (Local or Atlas)
-*   Redis instance
-*   API Keys: Judge0, Google Gemini, Cloudinary
+- Node.js (v18+)
+- MongoDB instance
+- Redis Server
+- Cloudinary Account (for video uploads)
 
-See [SETUP.md](SETUP.md) for detailed instructions on obtaining API keys and configuration.
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Athiran-dev/CodeArena.git
+   cd CodeArena
+   ```
+
+2. **Install Backend Dependencies:**
+   ```bash
+   cd backend
+   npm install
+   ```
+
+3. **Install Frontend Dependencies:**
+   ```bash
+   cd ../frontend
+   npm install
+   ```
+
+4. **Environment Variables:**
+   Create a `.env` file in the `backend` directory and add your keys:
+   ```env
+   PORT=3000
+   MONGO_URI=your_mongodb_uri
+   JWT_KEY=your_secret_key
+   CLOUDINARY_CLOUD_NAME=your_name
+   CLOUDINARY_API_KEY=your_key
+   CLOUDINARY_API_SECRET=your_secret
+   ```
+
+5. **Run the App:**
+   - **Backend**: `npm run dev` (from `/backend`)
+   - **Frontend**: `npm run dev` (from `/frontend`)
 
 ---
-
 
 ## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
-
-**Quick steps:**
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
-
----
-
-## 👑 Creator
-
-**Aman Savita**
-
-*   **Role:** Project Creator & Lead Developer
-*   **Vision:** Democratizing coding education through AI-driven tools.
-
----
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/Athiran-dev/CodeArena/issues).
 
 ## 📝 License
+This project is licensed under the MIT License.
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
-
-## 🙏 Acknowledgments
-
-- [Judge0](https://judge0.com/) - Code execution engine
-- [Google Gemini](https://deepmind.google/technologies/gemini/) - AI assistance
-- [MongoDB](https://www.mongodb.com/) - Database
-- [Redis](https://redis.io/) - Caching layer
-- [Cloudinary](https://cloudinary.com/) - Media storage
-
-## 📞 Contact
-
-**Aman** - Project Creator & Lead Developer
-
-Project Link: [https://github.com/Aman-81/CodeArena](https://github.com/Aman-81/CodeArena)
+---
+*Built with ❤️ by [Athiran-dev](https://github.com/Athiran-dev)*
